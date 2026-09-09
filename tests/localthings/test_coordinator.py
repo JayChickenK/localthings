@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import time
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
@@ -1050,6 +1052,110 @@ async def test_sweep_mismatch_forces_subpolls_on_a_live_observe_session(
     mock_subpolls.assert_called_once_with(force=True)
 
 
+async def _cancel_background_subpolls(coordinator: LocalThingsCoordinator) -> None:
+    """Setup starts `_run_subpolls` as a background task. Tests that drive
+    it directly have to cancel that one first, or a patched
+    `_poll_hrefs_blocking` also captures its batches."""
+    task = coordinator._subpoll_task
+    if task is None:
+        return
+    task.cancel()
+    coordinator._subpoll_task = None
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+
+
+async def test_observe_mode_subpolls_only_silent_hrefs(
+    hass: HomeAssistant, mock_entry, mock_coordinator_observe_session
+) -> None:
+    """Issue #92: subscribed-but-silent hrefs keep the hot/warm cadence
+    instead of waiting for the 30s sweep."""
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator: LocalThingsCoordinator = hass.data[DOMAIN][mock_entry.entry_id]
+    await _cancel_background_subpolls(coordinator)
+    assert coordinator._hot_hrefs
+    silent = coordinator._hot_hrefs[0]
+    coordinator._observe.mode = MODE_OBSERVE
+    coordinator._observe.fallback_hrefs = {silent}
+
+    polled: list[list[str]] = []
+
+    def _capture(hrefs):
+        polled.append(list(hrefs))
+
+    with (
+        patch.object(coordinator, "_poll_hrefs_blocking", side_effect=_capture),
+        patch(
+            "custom_components.localthings.coordinator.asyncio.sleep",
+            new_callable=AsyncMock,
+        ),
+    ):
+        await coordinator._run_subpolls()
+
+    assert polled
+    for batch in polled:
+        assert set(batch) == {silent}
+
+
+async def test_observe_mode_skips_subpolls_when_nothing_is_silent(
+    hass: HomeAssistant, mock_entry, mock_coordinator_observe_session
+) -> None:
+    """The observe-mode no-op stays in place when every subscribed href
+    actually notified -- issue #92 only keeps the silent ones on poll."""
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator: LocalThingsCoordinator = hass.data[DOMAIN][mock_entry.entry_id]
+    await _cancel_background_subpolls(coordinator)
+    coordinator._observe.mode = MODE_OBSERVE
+    coordinator._observe.fallback_hrefs = set()
+
+    with (
+        patch.object(coordinator, "_poll_hrefs_blocking") as mock_poll,
+        patch(
+            "custom_components.localthings.coordinator.asyncio.sleep",
+            new_callable=AsyncMock,
+        ) as mock_sleep,
+    ):
+        await coordinator._run_subpolls()
+
+    mock_poll.assert_not_called()
+    mock_sleep.assert_not_called()
+
+
+async def test_observe_mode_skips_empty_subpoll_slots(
+    hass: HomeAssistant, mock_entry, mock_coordinator_observe_session
+) -> None:
+    """Once hot is empty, odd slots would otherwise take the session lock
+    and dispatch a no-op executor job. Skip those."""
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator: LocalThingsCoordinator = hass.data[DOMAIN][mock_entry.entry_id]
+    await _cancel_background_subpolls(coordinator)
+    coordinator._observe.mode = MODE_OBSERVE
+    coordinator._hot_hrefs = []
+    coordinator._warm_hrefs = ["/warm/vs/0"]
+    coordinator._observe.fallback_hrefs = {"/warm/vs/0"}
+
+    polled: list[list[str]] = []
+
+    def _capture(hrefs):
+        polled.append(list(hrefs))
+
+    with (
+        patch.object(coordinator, "_poll_hrefs_blocking", side_effect=_capture),
+        patch(
+            "custom_components.localthings.coordinator.asyncio.sleep",
+            new_callable=AsyncMock,
+        ),
+    ):
+        await coordinator._run_subpolls()
+
+    assert polled
+    for batch in polled:
+        assert batch == ["/warm/vs/0"]
+
+
 async def test_write_marks_href_pending_before_post(
     hass: HomeAssistant, mock_entry, mock_coordinator_observe_session
 ) -> None:
@@ -1127,6 +1233,47 @@ async def test_send_command_applies_write_optimistically_before_settling(
     applied = coordinator._observe.apply("/some/path", {"value": 0}, source="observe")
     assert applied is False
     assert coordinator._cache.get("/some/path") == {"value": 5}
+
+
+async def test_write_only_button_does_not_manufacture_cache_state(
+    hass: HomeAssistant,
+    mock_entry,
+    mock_coordinator_observe_session,
+) -> None:
+    """A command-only field the appliance never returns must not survive as
+    optimistic cache state or gain a settle guard that blocks its empty GET."""
+    from custom_components.localthings.registry.capabilities import range as range_caps
+    from custom_components.localthings.registry.discovery import BoundEntity
+    from custom_components.localthings.registry.entities import ButtonDesc
+
+    fake = mock_coordinator_observe_session
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator: LocalThingsCoordinator = hass.data[DOMAIN][mock_entry.entry_id]
+    coordinator._cache.apply_rep(
+        "/configuration/vs/0",
+        {"rt": ["x.com.samsung.da.configuration"]},
+        source="test",
+    )
+    desc = range_caps.RANGE_CLOCK_SYNC.entities[0]
+    assert isinstance(desc, ButtonDesc)
+    bound = BoundEntity(
+        href="/configuration/vs/0",
+        capability=range_caps.RANGE_CLOCK_SYNC,
+        desc=desc,
+    )
+
+    with (
+        patch.object(fake, "subscribe"),
+        patch.object(coordinator, "async_request_refresh", new_callable=AsyncMock),
+    ):
+        fake.post = lambda *a, **k: (0x44, b"")
+        await coordinator.async_send_command(bound, desc.payload)
+
+    assert coordinator._cache.get("/configuration/vs/0") == {
+        "rt": ["x.com.samsung.da.configuration"]
+    }
+    assert coordinator._observe._settle_until.get("/configuration/vs/0") is None
 
 
 async def test_climate_power_write_applies_to_its_own_href_not_bound_href(
@@ -1628,6 +1775,54 @@ async def test_send_command_remote_control_check_precedes_validate_fn(
     with pytest.raises(ServiceValidationError) as exc_info:
         await coordinator.async_send_command(bound, "On")
     assert exc_info.value.translation_key == "remote_control_disabled"
+
+
+async def test_send_command_select_validate_fn_rejects_idle_oven_mode(
+    hass: HomeAssistant, mock_entry, mock_coordinator_observe_session
+) -> None:
+    """The oven mode select lists NoOperation so the idle state displays
+    (#445). Selecting it must raise a ServiceValidationError with the
+    catalog key, and nothing may reach the device -- the same shape as the
+    remote-control gate, replacing write_fn's warning-and-return."""
+    from custom_components.localthings.registry.capabilities.oven import OVEN_MODE
+    from custom_components.localthings.registry.discovery import BoundEntity
+
+    fake = mock_coordinator_observe_session
+    await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator: LocalThingsCoordinator = hass.data[DOMAIN][mock_entry.entry_id]
+    coordinator._cache.apply_rep(
+        "/remotectrl/vs/0",
+        {"x.com.samsung.da.remoteControlEnabled": "true"},
+        source="test",
+    )
+    coordinator._cache.apply_rep(
+        "/mode/vs/0",
+        {
+            "x.com.samsung.da.supportedModes": ["Bake", "Broil"],
+            "x.com.samsung.da.modes": ["NoOperation"],
+        },
+        source="test",
+    )
+    desc = OVEN_MODE.entities[0]
+    bound = BoundEntity(href="/mode/vs/0", capability=OVEN_MODE, desc=desc)
+
+    posted = []
+
+    def _post(path_segs, body, *a, **k):
+        posted.append((path_segs, body))
+        return (0x44, b"")
+
+    with patch.object(fake, "subscribe"):
+        fake.post = _post
+        with pytest.raises(ServiceValidationError) as exc_info:
+            await coordinator.async_send_command(bound, "NoOperation")
+        assert exc_info.value.translation_domain == DOMAIN
+        assert exc_info.value.translation_key == "oven_mode_idle_not_selectable"
+        assert posted == []
+
+        await coordinator.async_send_command(bound, "Bake")
+    assert posted and posted[0][0] == ["mode", "vs", "0"]
 
 
 async def test_send_command_bypasses_remote_control_when_option_enabled(

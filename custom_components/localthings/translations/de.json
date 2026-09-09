@@ -103,6 +103,12 @@
       "softener_low": {
         "name": "Weichspüler niedrig"
       },
+      "add_wash_available": {
+        "name": "AddWash erlaubt"
+      },
+      "add_wash_indicator": {
+        "name": "AddWash bereit"
+      },
       "pouring": {
         "name": "Ausgabe läuft"
       },
@@ -111,6 +117,24 @@
       },
       "stick_ble_connected": {
         "name": "Stick per BLE verbunden"
+      },
+      "cooktop_burner": {
+        "name": "Brenner {number}"
+      },
+      "beep": {
+        "name": "Signalton"
+      },
+      "remind_beep": {
+        "name": "Signalton-Erinnerung am Ende"
+      },
+      "display_time_auto_sync": {
+        "name": "Uhrzeit automatisch synchronisieren"
+      },
+      "grease_filter_alarm": {
+        "name": "Fettfilter-Alarm"
+      },
+      "front_vent_open": {
+        "name": "Vordere Lüftung"
       }
     },
     "button": {
@@ -123,6 +147,24 @@
       "auto_clean_stop": {
         "name": "Automatische Reinigung stoppen"
       },
+      "air_filter_reset": {
+        "name": "Luftfilter zurücksetzen"
+      },
+      "air_filter_pm1_reset": {
+        "name": "PM1.0-Filter zurücksetzen"
+      },
+      "hepa_filter_reset": {
+        "name": "HEPA-Filter zurücksetzen"
+      },
+      "deodor_filter_reset": {
+        "name": "Geruchsfilter zurücksetzen"
+      },
+      "hood_filter_reset": {
+        "name": "Haubenfilter zurücksetzen"
+      },
+      "filter_reset": {
+        "name": "Wasserfilter zurücksetzen"
+      },
       "filter_time_reset": {
         "name": "Filterzeit zurücksetzen"
       },
@@ -134,6 +176,9 @@
       },
       "start": {
         "name": "Start"
+      },
+      "sync_clock": {
+        "name": "Uhr synchronisieren"
       },
       "stop": {
         "name": "Stopp"
@@ -222,6 +267,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "Empfindlichkeit der Willkommensbeleuchtung",
+        "state": {
+          "nearest": "Am nächsten",
+          "near": "Nah",
+          "middle": "Mittel",
+          "far": "Weit"
+        }
+      },
       "ai_energy_level": {
         "name": "KI-Energiesparstufe"
       },
@@ -344,7 +398,20 @@
           "a4": "Zeittrocknen",
           "a6": "Schnelltrocknen",
           "a3": "Sportkleidung",
-          "a2": "Feinwäsche"
+          "a2": "Feinwäsche",
+          "9a": "Baumwolle",
+          "ca": "Frischluft",
+          "db": "Super Speed",
+          "99": "Mischwäsche",
+          "93": "Bügeltrocken",
+          "b5": "Wolle",
+          "d7": "Outdoor-Pflege",
+          "96": "Kaltluft",
+          "97": "Warmluft",
+          "7f": "Zeittrocknen",
+          "98": "Schnelltrocknen 35",
+          "eb": "Feinwäsche",
+          "b6": "Synthetik"
         }
       },
       "dryer_cycle_table_03": {
@@ -395,6 +462,17 @@
           "3b": "Bettwäsche/Entstauben",
           "3c": "Sportkleidung",
           "3d": "Jeansstoff"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "Trockenstufe",
+        "state": {
+          "none": "Aus",
+          "damp": "Feucht",
+          "less": "Weniger",
+          "normal": "Normal",
+          "more": "Mehr",
+          "very": "Sehr"
         }
       },
       "favorite_capacity": {
@@ -497,7 +575,13 @@
           "frozen_pizza_plus": "Tiefkühlpizza+",
           "slow_cook": "Langsam garen",
           "plate_warm": "Tellerwärmen",
-          "air_fry": "Heißluftfritteuse"
+          "air_fry": "Heißluftfritteuse",
+          "convection_roast": "Umluftbraten",
+          "keep_warm": "Warmhalten",
+          "bread_proof": "Teig gehen lassen",
+          "dehydrate": "Dörren",
+          "self_clean": "Selbstreinigung",
+          "air_fryer": "Heißluftfritteuse"
         }
       },
       "operating_mode": {
@@ -612,15 +696,29 @@
         "name": "Programm",
         "state": {
           "01": "Normal",
-          "70": "Intensiv",
           "55": "Weißwäsche",
+          "57": "Selbstreinigung+",
+          "5b": "Baumwolle",
+          "5c": "Extra Schnell",
+          "5d": "Super Eco",
+          "5e": "Feinwäsche",
+          "5f": "Babypflege",
+          "60": "Outdoor",
+          "61": "Dunkle Wäsche",
+          "63": "Trommelreinigung",
+          "64": "Spülen + Schleudern",
+          "65": "Wolle",
+          "66": "Bettwäsche",
+          "67": "Pflegeleicht",
+          "68": "Eco Baumwolle",
+          "6b": "Nur Schleudern",
+          "70": "Intensiv",
           "71": "Bettwäsche",
           "72": "Hygienespülung",
-          "77": "Pflegeleicht",
-          "57": "Selbstreinigung+",
           "73": "Spülen + Schleudern",
           "74": "Sportkleidung",
           "75": "Feinwäsche",
+          "77": "Pflegeleicht",
           "78": "Schnellwäsche"
         }
       },
@@ -828,9 +926,57 @@
           "ventilation": "Lüftung",
           "smartventilation": "Intelligente Lüftung"
         }
+      },
+      "dry_time": {
+        "name": "Trockenzeit"
+      },
+      "booster_fan_mode": {
+        "name": "Booster-Lüftermodus",
+        "state": {
+          "off": "Aus",
+          "auto": "Automatisch",
+          "high": "Hoch",
+          "medium": "Mittel"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "Farbtemperatur des Booster-Lichts",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "Helligkeit des Booster-Lichts",
+        "state": {
+          "smart": "Smart",
+          "high": "Hoch",
+          "low": "Niedrig"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "Booster-Schwenkwinkel",
+        "state": {
+          "normal": "Normal",
+          "circulation": "Zirkulation",
+          "right_narrow": "Rechts eng",
+          "right_wide": "Rechts weit",
+          "left_narrow": "Links eng",
+          "left_wide": "Links weit"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "Erfassungsstufe der Begrüßungsbeleuchtung",
+        "state": {
+          "nearest": "Am nächsten",
+          "near": "Nah",
+          "middle": "Mittel",
+          "far": "Weit"
+        }
+      },
       "auto_clean_progress": {
         "name": "Fortschritt automatische Reinigung"
       },
@@ -983,12 +1129,6 @@
       "drum_clean_last_cleaned": {
         "name": "Trommel zuletzt gereinigt"
       },
-      "dry_level": {
-        "name": "Trockenstufe"
-      },
-      "dry_time": {
-        "name": "Trockenzeit"
-      },
       "dryer_type": {
         "name": "Trocknertyp",
         "state": {
@@ -1000,6 +1140,9 @@
       },
       "energy_kwh": {
         "name": "Energie"
+      },
+      "usage_runtime_hours": {
+        "name": "Betriebszeit"
       },
       "energy_last_month_kwh": {
         "name": "Energie (letzter Monat)"
@@ -1136,7 +1279,8 @@
           "dryingwithdooropen": "Lüften",
           "cooling": "Abkühlen",
           "predrain": "Abpumpen",
-          "prewash": "Vorwäsche"
+          "prewash": "Vorwäsche",
+          "sanitizing": "Hygienespülung"
         }
       },
       "progress_percentage": {
@@ -1224,9 +1368,60 @@
       },
       "energy_saving_operating_status": {
         "name": "Energiespar-Betriebsstatus"
+      },
+      "active_burners": {
+        "name": "Aktive Brenner"
+      },
+      "cooktop_monitoring": {
+        "name": "Kochfeldüberwachung"
+      },
+      "booster_angle_location": {
+        "name": "Booster-Winkelposition"
+      },
+      "cooking_mode": {
+        "name": "Kochmodus",
+        "state": {
+          "no_operation": "Kein Betrieb",
+          "micro_wave": "Mikrowelle",
+          "autocook": "Automatikgaren",
+          "keep_warm": "Warmhalten"
+        }
+      },
+      "cook_time": {
+        "name": "Kochzeit"
+      },
+      "cook_time_remaining": {
+        "name": "Verbleibende Kochzeit"
+      },
+      "cook_finish_time": {
+        "name": "Ende der Kochzeit"
+      },
+      "sub_operation": {
+        "name": "Teilvorgang"
+      },
+      "hood_fan_speed": {
+        "name": "Lüfterstufe",
+        "state": {
+          "off": "Aus",
+          "low": "Niedrig",
+          "medium": "Mittel",
+          "high": "Hoch",
+          "boost": "Boost"
+        }
+      },
+      "hood_lamp": {
+        "name": "Lampe",
+        "state": {
+          "off": "Aus",
+          "medium": "Mittel",
+          "on": "Ein"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "Zeitplan für Nachtbeleuchtung"
+      },
       "ai_energy_level": {
         "name": "KI-Energiesparmodus"
       },
@@ -1344,6 +1539,18 @@
       "intensive": {
         "name": "Intensiv"
       },
+      "add_wash_alarm": {
+        "name": "AddWash-Hinweis"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "AddWash Spülen"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "AddWash letztes Spülen"
+      },
+      "add_wash_alarm_spin": {
+        "name": "AddWash Schleudern"
+      },
       "lamp": {
         "name": "Lampe"
       },
@@ -1427,6 +1634,21 @@
       },
       "windsleep": {
         "name": "Schlafmodus"
+      },
+      "auto_detergent": {
+        "name": "Automatische Waschmitteldosierung"
+      },
+      "auto_softener": {
+        "name": "Automatische Weichspülerdosierung"
+      },
+      "booster_light": {
+        "name": "Booster-Licht"
+      },
+      "booster_light_manual_brightness": {
+        "name": "Manuelle Booster-Helligkeit"
+      },
+      "booster_oscillation": {
+        "name": "Booster-Schwenken"
       }
     },
     "time": {
@@ -1627,6 +1849,9 @@
   "exceptions": {
     "remote_control_disabled": {
       "message": "Die Fernsteuerung ist bei diesem Gerät ausgeschaltet. Schauen Sie im Handbuch Ihres Geräts nach, wie Sie die Fernsteuerung aktivieren, bevor Home Assistant es steuern kann."
+    },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation meldet der Backofen im Leerlauf. Es lässt sich nicht als Betriebsart auswählen; brechen Sie den Garvorgang stattdessen am Bedienfeld des Backofens ab."
     },
     "debug_payload_empty": {
       "message": "Die Debug-Schreibdaten müssen ein nicht leeres Objekt sein."

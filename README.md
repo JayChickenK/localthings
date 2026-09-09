@@ -20,6 +20,8 @@
 
 **A native Home Assistant custom integration for local control of newer-generation Samsung connected appliances.** No cloud round-trip. Add a device through HA's normal *Settings > Devices & Services* flow and it talks CoAP-over-DTLS straight to the appliance on your LAN.
 
+This needs an appliance on Tizen RT 3.x / DAWIT 3.0+ firmware (roughly 2022+), which exposes a local DTLS-CoAP API. Older firmware (roughly 2018-2022) only talks to Samsung's cloud over token-based HTTPS and isn't supported. You don't need to check this yourself — the config flow probes the appliance's local API port range during setup and tells you plainly if it can't find one there.
+
 This integration uses the [`smartthings-local`](https://github.com/QuiteYellow/SmartThings-Local) library to handle the low-level DTLS/CoAP communication with devices.
 
 ### What you get
@@ -56,19 +58,28 @@ Other Tizen RT / DAWIT-family appliances almost certainly speak the same protoco
 
 ---
 
+## Install
+
+1. Install via [HACS](https://hacs.xyz/): **HACS > Integrations**, search for **LocalThings**, and click **Download**. (LocalThings is in HACS's default repository list, so no custom repository needed.)
+
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=mbillow&repository=localthings&category=integration)
+
+   No HACS? Copy `custom_components/localthings/` into your HA config's `custom_components/` directory instead.
+2. Restart HA.
+
+---
+
 ## Add the integration in Home Assistant
 
 Everything below happens in Home Assistant. You do not need nmap, Python, or a terminal.
 
-1. Copy `custom_components/localthings/` into your HA config's `custom_components/` directory. (Or add this repo as a custom repository in HACS — `Integration` category — and install it from there.)
-2. Restart HA.
-3. **Settings > Devices & Services > Add Integration > LocalThings.**
-4. Enter the appliance's IP. The flow probes UDP `49152-49160` for a DTLS server (the old nmap step), and checks TCP `8888` when nothing in that range answers:
+1. **Settings > Devices & Services > Add Integration > LocalThings.**
+2. Enter the appliance's IP. The flow probes UDP `49152-49160` for a DTLS server (the old nmap step), and checks TCP `8888` when nothing in that range answers:
    - A DTLS answer in that UDP range: newer firmware (Tizen RT 3.x, DAWIT 3.0+). This is what the integration talks to. Most devices answer on `49154`/`49155`, but some builds bind lower (e.g. `49153`). The live port is detected automatically.
    - Only `8888/tcp` open (token-based HTTPS): older firmware (roughly 2018-2022). **Not supported here.** The flow usually names this for you, on the IP screen, before it asks for anything else. It needs the appliance to actively refuse the UDP range to be sure, though, so a firewall that drops those packets silently instead leaves it to the handshake, which fails a step later with "nothing there speaks DTLS".
-5. First device only: paste the **AC14K_M CA** on the next screen. A combined PEM (certificate + private key in one file) can go entirely in the first field; the key field can stay empty. The flow splits the bundle and checks that the cert and key pair. The key can't be passphrase-protected -- HA has nowhere to ask you for the passphrase, and says so rather than failing later. This repo does not include or download the CA. For an example of how to obtain it, see the `smartthings-local` protocol project's [`setup_cert.py`](https://github.com/QuiteYellow/SmartThings-Local/blob/main/setup_cert.py). You only do this once — every appliance after that reuses the stored CA.
-6. The flow then sends a DTLS `ClientHello` to every port in the `49152-49160` range at once and keeps the one that answers -- a real DTLS server identifies itself in about one round trip, and the probe stops there, so nothing is left behind on the appliance. Only that port is then given a real certificate handshake: it fetches the current UUID from Samsung's cloud gateway, mints a leaf cert signed by your CA, and reads the device's identity and `/device/0`. On success it creates the config entry, already knowing the appliance's serial, model, and type.
-7. Every subsequent device only asks for the host IP. The stored CA credentials are reused, and so is the leaf cert itself -- every appliance accepts the same one -- so adding a second appliance doesn't depend on Samsung's cloud being reachable at all. If a device rejects the reused cert (the UUID does rotate), the flow mints a fresh one and retries by itself.
+3. First device only: paste the **AC14K_M CA** on the next screen. A combined PEM (certificate + private key in one file) can go entirely in the first field; the key field can stay empty. The flow splits the bundle and checks that the cert and key pair. The key can't be passphrase-protected -- HA has nowhere to ask you for the passphrase, and says so rather than failing later. This repo does not include or download the CA. For an example of how to obtain it, see the `smartthings-local` protocol project's [`setup_cert.py`](https://github.com/QuiteYellow/SmartThings-Local/blob/main/setup_cert.py). You only do this once — every appliance after that reuses the stored CA.
+4. The flow then sends a DTLS `ClientHello` to every port in the `49152-49160` range at once and keeps the one that answers -- a real DTLS server identifies itself in about one round trip, and the probe stops there, so nothing is left behind on the appliance. Only that port is then given a real certificate handshake: it fetches the current UUID from Samsung's cloud gateway, mints a leaf cert signed by your CA, and reads the device's identity and `/device/0`. On success it creates the config entry, already knowing the appliance's serial, model, and type.
+5. Every subsequent device only asks for the host IP. The stored CA credentials are reused, and so is the leaf cert itself -- every appliance accepts the same one -- so adding a second appliance doesn't depend on Samsung's cloud being reachable at all. If a device rejects the reused cert (the UUID does rotate), the flow mints a fresh one and retries by itself.
 
 The CA is the `AC14K_M` intermediate — a cert chain that's been public for years and still ships in current Samsung firmware trust stores. Every Samsung Tizen/RT-OCF appliance trusts identities chained to that CA with full access by default, so a cert signed by it is what lets HA talk to your appliance without Samsung's cloud in the loop. HA doesn't need the *device's* original cert or key, only something `AC14K_M` has signed, and it mints that itself once you give it the CA.
 

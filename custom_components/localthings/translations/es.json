@@ -166,6 +166,9 @@
     "remote_control_disabled": {
       "message": "El control remoto está desactivado en este dispositivo. Consulta el manual de tu electrodoméstico para saber cómo activar el control remoto antes de que Home Assistant pueda controlarlo."
     },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation es lo que indica el horno cuando está inactivo. No se puede seleccionar como modo; cancela la cocción desde el panel del horno."
+    },
     "debug_payload_empty": {
       "message": "El contenido de la escritura de depuración debe ser un objeto no vacío."
     },
@@ -313,11 +316,35 @@
       "softener_low": {
         "name": "Poco suavizante"
       },
+      "add_wash_available": {
+        "name": "AddWash permitido"
+      },
+      "add_wash_indicator": {
+        "name": "AddWash disponible"
+      },
       "auto_clean_running": {
         "name": "Limpieza automática en curso"
       },
       "stick_ble_connected": {
         "name": "Aspiradora conectada por BLE"
+      },
+      "cooktop_burner": {
+        "name": "Quemador {number}"
+      },
+      "beep": {
+        "name": "Pitido"
+      },
+      "remind_beep": {
+        "name": "Recordatorio de señal de fin"
+      },
+      "display_time_auto_sync": {
+        "name": "Sincronización automática de la hora"
+      },
+      "grease_filter_alarm": {
+        "name": "Alarma del filtro de grasa"
+      },
+      "front_vent_open": {
+        "name": "Ventilación frontal"
       }
     },
     "button": {
@@ -330,6 +357,24 @@
       "auto_clean_stop": {
         "name": "Detener la autolimpieza"
       },
+      "air_filter_reset": {
+        "name": "Restablecer el filtro de aire"
+      },
+      "air_filter_pm1_reset": {
+        "name": "Restablecer el filtro PM1.0"
+      },
+      "hepa_filter_reset": {
+        "name": "Restablecer el filtro HEPA"
+      },
+      "deodor_filter_reset": {
+        "name": "Restablecer el filtro desodorizante"
+      },
+      "hood_filter_reset": {
+        "name": "Restablecer el filtro de la campana"
+      },
+      "filter_reset": {
+        "name": "Restablecer el filtro de agua"
+      },
       "filter_time_reset": {
         "name": "Restablecer el contador del filtro"
       },
@@ -341,6 +386,9 @@
       },
       "start": {
         "name": "Iniciar"
+      },
+      "sync_clock": {
+        "name": "Sincronizar reloj"
       },
       "stop": {
         "name": "Detener"
@@ -429,6 +477,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "Proximidad de iluminación de bienvenida",
+        "state": {
+          "nearest": "Más cercano",
+          "near": "Cerca",
+          "middle": "Medio",
+          "far": "Lejos"
+        }
+      },
       "ai_energy_level": {
         "name": "Nivel del modo de energía IA"
       },
@@ -551,7 +608,20 @@
           "a4": "Secado por tiempo",
           "a6": "Secado rápido",
           "a3": "Ropa deportiva",
-          "a2": "Delicados"
+          "a2": "Delicados",
+          "9a": "Algodón",
+          "ca": "Aireación",
+          "db": "Súper velocidad",
+          "99": "Carga mixta",
+          "93": "Planchado fácil",
+          "b5": "Lana",
+          "d7": "Cuidado para exterior",
+          "96": "Aire frío",
+          "97": "Aire caliente",
+          "7f": "Secado por tiempo",
+          "98": "Secado rápido 35",
+          "eb": "Delicados",
+          "b6": "Sintéticos"
         }
       },
       "dryer_cycle_table_03": {
@@ -602,6 +672,17 @@
           "3b": "Ropa de cama/Antipolvo",
           "3c": "Ropa deportiva",
           "3d": "Denim"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "Nivel de secado",
+        "state": {
+          "none": "Desactivado",
+          "damp": "Húmedo",
+          "less": "Menos",
+          "normal": "Normal",
+          "more": "Más",
+          "very": "Muy"
         }
       },
       "favorite_capacity": {
@@ -704,7 +785,13 @@
           "frozen_pizza_plus": "Pizza congelada+",
           "slow_cook": "Cocción lenta",
           "plate_warm": "Calentar platos",
-          "air_fry": "Freidora de aire"
+          "air_fry": "Freidora de aire",
+          "convection_roast": "Asar por convección",
+          "keep_warm": "Mantener caliente",
+          "bread_proof": "Fermentar masa",
+          "dehydrate": "Deshidratar",
+          "self_clean": "Autolimpieza",
+          "air_fryer": "Freidora de aire"
         }
       },
       "operating_mode": {
@@ -856,15 +943,29 @@
         "name": "Ciclo",
         "state": {
           "01": "Normal",
-          "70": "Servicio intensivo",
           "55": "Blancos",
+          "57": "Autolimpieza+",
+          "5b": "Algodón",
+          "5c": "Extra rápido",
+          "5d": "Super Eco",
+          "5e": "Delicados",
+          "5f": "Cuidado del bebé",
+          "60": "Exterior",
+          "61": "Prendas oscuras",
+          "63": "Limpieza de Tambor",
+          "64": "Aclarar + Centrifugar",
+          "65": "Lana",
+          "66": "Ropa de cama",
+          "67": "Sintéticos",
+          "68": "Algodón E",
+          "6b": "Solo centrifugar",
+          "70": "Servicio intensivo",
           "71": "Ropa de cama",
           "72": "Desinfección",
-          "77": "Planchado fácil",
-          "57": "Autolimpieza+",
           "73": "Aclarar + Centrifugar",
           "74": "Ropa deportiva",
           "75": "Delicados",
+          "77": "Planchado fácil",
           "78": "Lavado rápido"
         }
       },
@@ -1035,9 +1136,57 @@
           "ventilation": "Ventilación",
           "smartventilation": "Ventilación inteligente"
         }
+      },
+      "dry_time": {
+        "name": "Tiempo de secado"
+      },
+      "booster_fan_mode": {
+        "name": "Modo del ventilador del booster",
+        "state": {
+          "off": "Apagado",
+          "auto": "Automático",
+          "high": "Alta",
+          "medium": "Media"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "Temperatura de color de la luz del booster",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "Brillo de la luz del booster",
+        "state": {
+          "smart": "Inteligente",
+          "high": "Alto",
+          "low": "Bajo"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "Ángulo de oscilación del booster",
+        "state": {
+          "normal": "Normal",
+          "circulation": "Circulación",
+          "right_narrow": "Derecha estrecha",
+          "right_wide": "Derecha amplia",
+          "left_narrow": "Izquierda estrecha",
+          "left_wide": "Izquierda amplia"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "Nivel de detección de la iluminación de bienvenida",
+        "state": {
+          "nearest": "Más cercano",
+          "near": "Cerca",
+          "middle": "Medio",
+          "far": "Lejos"
+        }
+      },
       "after_run_progress": {
         "name": "Progreso tras finalizar"
       },
@@ -1193,12 +1342,6 @@
       "drum_clean_last_cleaned": {
         "name": "Última limpieza del tambor"
       },
-      "dry_level": {
-        "name": "Nivel de secado"
-      },
-      "dry_time": {
-        "name": "Tiempo de secado"
-      },
       "dryer_type": {
         "name": "Tipo de secadora",
         "state": {
@@ -1210,6 +1353,9 @@
       },
       "energy_kwh": {
         "name": "Energía"
+      },
+      "usage_runtime_hours": {
+        "name": "Tiempo de funcionamiento"
       },
       "energy_last_month_kwh": {
         "name": "Energía (último mes)"
@@ -1346,7 +1492,8 @@
           "dryingwithdooropen": "Ventilación",
           "cooling": "Enfriamiento",
           "predrain": "Drenaje previo",
-          "prewash": "Prelavado"
+          "prewash": "Prelavado",
+          "sanitizing": "Desinfección"
         }
       },
       "progress_percentage": {
@@ -1431,9 +1578,60 @@
       },
       "air_filter_pm1_usage_hours": {
         "name": "Horas de uso del filtro PM1"
+      },
+      "active_burners": {
+        "name": "Quemadores activos"
+      },
+      "cooktop_monitoring": {
+        "name": "Supervisión de la placa"
+      },
+      "booster_angle_location": {
+        "name": "Posición del ángulo del booster"
+      },
+      "cooking_mode": {
+        "name": "Modo de cocción",
+        "state": {
+          "no_operation": "Sin operación",
+          "micro_wave": "Microondas",
+          "autocook": "Cocción automática",
+          "keep_warm": "Mantener caliente"
+        }
+      },
+      "cook_time": {
+        "name": "Tiempo de cocción"
+      },
+      "cook_time_remaining": {
+        "name": "Tiempo de cocción restante"
+      },
+      "cook_finish_time": {
+        "name": "Fin de la cocción"
+      },
+      "sub_operation": {
+        "name": "Suboperación"
+      },
+      "hood_fan_speed": {
+        "name": "Velocidad del ventilador",
+        "state": {
+          "off": "Apagado",
+          "low": "Baja",
+          "medium": "Media",
+          "high": "Alta",
+          "boost": "Turbo"
+        }
+      },
+      "hood_lamp": {
+        "name": "Lámpara",
+        "state": {
+          "off": "Apagada",
+          "medium": "Media",
+          "on": "Encendida"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "Horario de iluminación nocturna"
+      },
       "ai_energy_level": {
         "name": "Modo de energía IA"
       },
@@ -1557,6 +1755,18 @@
       "intensive": {
         "name": "Intensivo"
       },
+      "add_wash_alarm": {
+        "name": "Aviso AddWash"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "AddWash en aclarado"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "AddWash en último aclarado"
+      },
+      "add_wash_alarm_spin": {
+        "name": "AddWash en centrifugado"
+      },
       "lamp": {
         "name": "Lámpara"
       },
@@ -1634,6 +1844,21 @@
       },
       "windsleep": {
         "name": "Modo nocturno"
+      },
+      "auto_detergent": {
+        "name": "Detergente automático"
+      },
+      "auto_softener": {
+        "name": "Suavizante automático"
+      },
+      "booster_light": {
+        "name": "Luz del booster"
+      },
+      "booster_light_manual_brightness": {
+        "name": "Brillo manual del booster"
+      },
+      "booster_oscillation": {
+        "name": "Oscilación del booster"
       }
     },
     "time": {

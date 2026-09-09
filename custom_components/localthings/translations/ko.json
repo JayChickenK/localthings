@@ -109,8 +109,32 @@
       "softener_low": {
         "name": "섬유유연제 부족"
       },
+      "add_wash_available": {
+        "name": "애드워시 허용"
+      },
+      "add_wash_indicator": {
+        "name": "애드워시 가능"
+      },
       "stick_ble_connected": {
         "name": "스틱 BLE 연결됨"
+      },
+      "cooktop_burner": {
+        "name": "버너 {number}"
+      },
+      "beep": {
+        "name": "비프음"
+      },
+      "remind_beep": {
+        "name": "종료 알림음"
+      },
+      "display_time_auto_sync": {
+        "name": "시간 자동 동기화"
+      },
+      "grease_filter_alarm": {
+        "name": "기름 필터 알림"
+      },
+      "front_vent_open": {
+        "name": "전면 배기구"
       }
     },
     "button": {
@@ -123,6 +147,24 @@
       "auto_clean_stop": {
         "name": "자동 청소 정지"
       },
+      "air_filter_reset": {
+        "name": "공기 필터 초기화"
+      },
+      "air_filter_pm1_reset": {
+        "name": "PM1.0 필터 초기화"
+      },
+      "hepa_filter_reset": {
+        "name": "헤파 필터 초기화"
+      },
+      "deodor_filter_reset": {
+        "name": "탈취 필터 초기화"
+      },
+      "hood_filter_reset": {
+        "name": "후드 필터 초기화"
+      },
+      "filter_reset": {
+        "name": "정수 필터 초기화"
+      },
       "filter_time_reset": {
         "name": "필터 사용 시간 초기화"
       },
@@ -134,6 +176,9 @@
       },
       "start": {
         "name": "시작"
+      },
+      "sync_clock": {
+        "name": "시계 동기화"
       },
       "stop": {
         "name": "정지"
@@ -222,6 +267,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "웰컴 라이팅 감지 거리",
+        "state": {
+          "nearest": "가장 가까움",
+          "near": "가까움",
+          "middle": "중간",
+          "far": "멀리"
+        }
+      },
       "ai_energy_level": {
         "name": "AI 절약 모드 단계"
       },
@@ -344,7 +398,20 @@
           "a4": "시간건조",
           "a6": "쾌속건조",
           "a3": "운동복",
-          "a2": "섬세의류"
+          "a2": "섬세의류",
+          "9a": "면의류",
+          "ca": "송풍",
+          "db": "쾌속건조",
+          "99": "혼합",
+          "93": "다림질건조",
+          "b5": "울",
+          "d7": "아웃도어케어",
+          "96": "송풍건조",
+          "97": "온풍건조",
+          "7f": "시간건조",
+          "98": "쾌속건조 35분",
+          "eb": "섬세의류",
+          "b6": "합성섬유"
         }
       },
       "dryer_cycle_table_03": {
@@ -395,6 +462,17 @@
           "3b": "이불/먼지털기",
           "3c": "피트니스",
           "3d": "데님"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "건조 단계",
+        "state": {
+          "none": "끄기",
+          "damp": "촉촉",
+          "less": "적게",
+          "normal": "표준",
+          "more": "많이",
+          "very": "매우 많이"
         }
       },
       "favorite_capacity": {
@@ -497,7 +575,13 @@
           "frozen_pizza_plus": "냉동 피자+",
           "slow_cook": "저온 조리",
           "plate_warm": "접시 데우기",
-          "air_fry": "에어프라이"
+          "air_fry": "에어프라이",
+          "convection_roast": "컨벡션 로스트",
+          "keep_warm": "보온",
+          "bread_proof": "발효",
+          "dehydrate": "건조",
+          "self_clean": "자동 세척",
+          "air_fryer": "에어프라이"
         }
       },
       "operating_mode": {
@@ -649,15 +733,29 @@
         "name": "코스",
         "state": {
           "01": "표준세탁",
-          "70": "강력세탁",
           "55": "흰옷",
+          "57": "통세척+",
+          "5b": "면",
+          "5c": "초고속세탁",
+          "5d": "초절약세탁",
+          "5e": "섬세의류",
+          "5f": "아기옷",
+          "60": "아웃도어",
+          "61": "검은색 의류",
+          "63": "무세제통세척",
+          "64": "헹굼+탈수",
+          "65": "울",
+          "66": "이불",
+          "67": "합성섬유",
+          "68": "에코 면",
+          "6b": "탈수단독",
+          "70": "강력세탁",
           "71": "이불",
           "72": "살균",
-          "77": "구김방지",
-          "57": "통세척+",
           "73": "헹굼+탈수",
           "74": "운동복",
           "75": "섬세의류",
+          "77": "구김방지",
           "78": "쾌속세탁"
         }
       },
@@ -828,9 +926,57 @@
           "ventilation": "환기",
           "smartventilation": "스마트환기"
         }
+      },
+      "dry_time": {
+        "name": "건조 시간"
+      },
+      "booster_fan_mode": {
+        "name": "부스터 팬 모드",
+        "state": {
+          "off": "끄기",
+          "auto": "자동",
+          "high": "강",
+          "medium": "중"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "부스터 조명 색온도",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "부스터 조명 밝기",
+        "state": {
+          "smart": "스마트",
+          "high": "밝게",
+          "low": "어둡게"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "부스터 회전 각도",
+        "state": {
+          "normal": "일반",
+          "circulation": "순환",
+          "right_narrow": "오른쪽 좁게",
+          "right_wide": "오른쪽 넓게",
+          "left_narrow": "왼쪽 좁게",
+          "left_wide": "왼쪽 넓게"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "웰컴 조명 감지 단계",
+        "state": {
+          "nearest": "가장 가까움",
+          "near": "가까움",
+          "middle": "중간",
+          "far": "멀리"
+        }
+      },
       "auto_clean_progress": {
         "name": "자동 청소 진행률"
       },
@@ -989,12 +1135,6 @@
       "drum_clean_last_cleaned": {
         "name": "마지막 통세척"
       },
-      "dry_level": {
-        "name": "건조 단계"
-      },
-      "dry_time": {
-        "name": "건조 시간"
-      },
       "dryer_type": {
         "name": "건조기 유형",
         "state": {
@@ -1006,6 +1146,9 @@
       },
       "energy_kwh": {
         "name": "에너지"
+      },
+      "usage_runtime_hours": {
+        "name": "운전 시간"
       },
       "energy_last_month_kwh": {
         "name": "지난달 에너지"
@@ -1142,7 +1285,8 @@
           "dryingwithdooropen": "환기",
           "cooling": "냉각",
           "predrain": "사전 배수",
-          "prewash": "애벌빨래"
+          "prewash": "애벌빨래",
+          "sanitizing": "살균"
         }
       },
       "progress_percentage": {
@@ -1224,9 +1368,60 @@
       },
       "air_filter_pm1_usage_hours": {
         "name": "PM1 필터 사용 시간"
+      },
+      "active_burners": {
+        "name": "작동 중인 버너"
+      },
+      "cooktop_monitoring": {
+        "name": "쿡탑 모니터링"
+      },
+      "booster_angle_location": {
+        "name": "부스터 각도 위치"
+      },
+      "cooking_mode": {
+        "name": "조리 모드",
+        "state": {
+          "no_operation": "작동 안 함",
+          "micro_wave": "전자레인지",
+          "autocook": "자동 조리",
+          "keep_warm": "보온"
+        }
+      },
+      "cook_time": {
+        "name": "조리 시간"
+      },
+      "cook_time_remaining": {
+        "name": "남은 조리 시간"
+      },
+      "cook_finish_time": {
+        "name": "조리 완료 시각"
+      },
+      "sub_operation": {
+        "name": "세부 동작"
+      },
+      "hood_fan_speed": {
+        "name": "팬 세기",
+        "state": {
+          "off": "꺼짐",
+          "low": "약",
+          "medium": "중",
+          "high": "강",
+          "boost": "터보"
+        }
+      },
+      "hood_lamp": {
+        "name": "램프",
+        "state": {
+          "off": "꺼짐",
+          "medium": "중",
+          "on": "켜짐"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "야간 조명 일정"
+      },
       "ai_energy_level": {
         "name": "AI 절약 모드"
       },
@@ -1350,6 +1545,18 @@
       "intensive": {
         "name": "강력"
       },
+      "add_wash_alarm": {
+        "name": "애드워시 알림"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "애드워시 헹굼"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "애드워시 마지막 헹굼"
+      },
+      "add_wash_alarm_spin": {
+        "name": "애드워시 탈수"
+      },
       "lamp": {
         "name": "램프"
       },
@@ -1427,6 +1634,21 @@
       },
       "windsleep": {
         "name": "취침 모드"
+      },
+      "auto_detergent": {
+        "name": "세제 자동 투입"
+      },
+      "auto_softener": {
+        "name": "섬유유연제 자동 투입"
+      },
+      "booster_light": {
+        "name": "부스터 조명"
+      },
+      "booster_light_manual_brightness": {
+        "name": "부스터 수동 밝기"
+      },
+      "booster_oscillation": {
+        "name": "부스터 회전"
       }
     },
     "time": {
@@ -1627,6 +1849,9 @@
   "exceptions": {
     "remote_control_disabled": {
       "message": "이 기기의 스마트 컨트롤이 꺼져 있습니다. Home Assistant에서 기기를 제어하려면 가전제품 설명서에서 스마트 컨트롤을 활성화하는 방법을 확인하세요."
+    },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation은 오븐이 대기 중일 때 보고하는 상태입니다. 모드로 선택할 수 없으며, 대신 오븐 조작부에서 조리를 취소하세요."
     },
     "debug_payload_empty": {
       "message": "디버그 쓰기 페이로드는 비어 있지 않은 객체여야 합니다."

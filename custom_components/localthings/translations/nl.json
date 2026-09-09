@@ -109,8 +109,32 @@
       "softener_low": {
         "name": "Wasverzachter bijna op"
       },
+      "add_wash_available": {
+        "name": "AddWash toegestaan"
+      },
+      "add_wash_indicator": {
+        "name": "AddWash beschikbaar"
+      },
       "stick_ble_connected": {
         "name": "Steel via BLE verbonden"
+      },
+      "cooktop_burner": {
+        "name": "Brander {number}"
+      },
+      "beep": {
+        "name": "Piep"
+      },
+      "remind_beep": {
+        "name": "Eindsignaal herinnering"
+      },
+      "display_time_auto_sync": {
+        "name": "Tijd automatisch synchroniseren"
+      },
+      "grease_filter_alarm": {
+        "name": "Vetfilteralarm"
+      },
+      "front_vent_open": {
+        "name": "Voorste ventilatie"
       }
     },
     "button": {
@@ -123,6 +147,24 @@
       "auto_clean_stop": {
         "name": "Zelfreiniging stoppen"
       },
+      "air_filter_reset": {
+        "name": "Luchtfilter resetten"
+      },
+      "air_filter_pm1_reset": {
+        "name": "PM1.0-filter resetten"
+      },
+      "hepa_filter_reset": {
+        "name": "HEPA-filter resetten"
+      },
+      "deodor_filter_reset": {
+        "name": "Geurfilter resetten"
+      },
+      "hood_filter_reset": {
+        "name": "Kapfilter resetten"
+      },
+      "filter_reset": {
+        "name": "Waterfilter resetten"
+      },
       "filter_time_reset": {
         "name": "Filterteller op nul zetten"
       },
@@ -134,6 +176,9 @@
       },
       "start": {
         "name": "Starten"
+      },
+      "sync_clock": {
+        "name": "Klok synchroniseren"
       },
       "stop": {
         "name": "Stoppen"
@@ -222,6 +267,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "Nabijheidsniveau welkomstverlichting",
+        "state": {
+          "nearest": "Dichtstbij",
+          "near": "Dichtbij",
+          "middle": "Gemiddeld",
+          "far": "Ver"
+        }
+      },
       "ai_energy_level": {
         "name": "Niveau AI Energy Mode"
       },
@@ -344,7 +398,20 @@
           "a4": "Tijdprogramma",
           "a6": "Snel drogen",
           "a3": "Sportkleding",
-          "a2": "Fijne was"
+          "a2": "Fijne was",
+          "9a": "Katoen",
+          "ca": "Luchtverfrissing",
+          "db": "Super Speed",
+          "99": "Gemengde was",
+          "93": "Strijkdroog",
+          "b5": "Wol",
+          "d7": "Outdoorverzorging",
+          "96": "Koude lucht",
+          "97": "Warme lucht",
+          "7f": "Tijdprogramma",
+          "98": "Snel drogen 35",
+          "eb": "Fijne was",
+          "b6": "Synthetisch"
         }
       },
       "dryer_cycle_table_03": {
@@ -395,6 +462,17 @@
           "3b": "Beddengoed/Stof verwijderen",
           "3c": "Sportkleding",
           "3d": "Spijkergoed"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "Droogniveau",
+        "state": {
+          "none": "Uit",
+          "damp": "Vochtig",
+          "less": "Minder",
+          "normal": "Normaal",
+          "more": "Meer",
+          "very": "Zeer"
         }
       },
       "favorite_capacity": {
@@ -497,7 +575,13 @@
           "frozen_pizza_plus": "Frozen Pizza+",
           "slow_cook": "Langzaam garen",
           "plate_warm": "Borden warmhouden",
-          "air_fry": "Airfryen"
+          "air_fry": "Airfryen",
+          "convection_roast": "Heteluchtbraden",
+          "keep_warm": "Warmhouden",
+          "bread_proof": "Deeg rijzen",
+          "dehydrate": "Drogen",
+          "self_clean": "Zelfreiniging",
+          "air_fryer": "Airfryer"
         }
       },
       "operating_mode": {
@@ -649,15 +733,29 @@
         "name": "Programma",
         "state": {
           "01": "Normaal",
-          "70": "Intensief",
           "55": "Witte was",
+          "57": "Self Clean+",
+          "5b": "Katoen",
+          "5c": "Extra snel",
+          "5d": "Super Eco",
+          "5e": "Fijne was",
+          "5f": "Babyverzorging",
+          "60": "Outdoor",
+          "61": "Donkere was",
+          "63": "Trommel reinigen",
+          "64": "Spoelen + centrifugeren",
+          "65": "Wol",
+          "66": "Beddengoed",
+          "67": "Synthetisch",
+          "68": "Eco katoen",
+          "6b": "Alleen centrifugeren",
+          "70": "Intensief",
           "71": "Beddengoed",
           "72": "Hygiëne",
-          "77": "Strijkvrij",
-          "57": "Self Clean+",
           "73": "Spoelen + centrifugeren",
           "74": "Sportkleding",
           "75": "Fijne was",
+          "77": "Strijkvrij",
           "78": "Snelle was"
         }
       },
@@ -828,9 +926,57 @@
           "ventilation": "Ventilatie",
           "smartventilation": "Slimme ventilatie"
         }
+      },
+      "dry_time": {
+        "name": "Droogtijd"
+      },
+      "booster_fan_mode": {
+        "name": "Booster-ventilatormodus",
+        "state": {
+          "off": "Uit",
+          "auto": "Automatisch",
+          "high": "Hoog",
+          "medium": "Gemiddeld"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "Kleurtemperatuur boosterlicht",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "Helderheid boosterlicht",
+        "state": {
+          "smart": "Slim",
+          "high": "Hoog",
+          "low": "Laag"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "Booster-oscillatiehoek",
+        "state": {
+          "normal": "Normaal",
+          "circulation": "Circulatie",
+          "right_narrow": "Rechts smal",
+          "right_wide": "Rechts breed",
+          "left_narrow": "Links smal",
+          "left_wide": "Links breed"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "Detectieniveau welkomstverlichting",
+        "state": {
+          "nearest": "Dichtstbij",
+          "near": "Dichtbij",
+          "middle": "Gemiddeld",
+          "far": "Ver"
+        }
+      },
       "auto_clean_progress": {
         "name": "Auto clean voortgang"
       },
@@ -989,12 +1135,6 @@
       "drum_clean_last_cleaned": {
         "name": "Trommel laatst gereinigd"
       },
-      "dry_level": {
-        "name": "Droogniveau"
-      },
-      "dry_time": {
-        "name": "Droogtijd"
-      },
       "dryer_type": {
         "name": "Type droger",
         "state": {
@@ -1006,6 +1146,9 @@
       },
       "energy_kwh": {
         "name": "Energie"
+      },
+      "usage_runtime_hours": {
+        "name": "Bedrijfstijd"
       },
       "energy_last_month_kwh": {
         "name": "Energie (vorige maand)"
@@ -1142,7 +1285,8 @@
           "dryingwithdooropen": "Ventileren",
           "cooling": "Koelen",
           "predrain": "Vooraf afpompen",
-          "prewash": "Voorwas"
+          "prewash": "Voorwas",
+          "sanitizing": "Ontsmetten"
         }
       },
       "progress_percentage": {
@@ -1224,9 +1368,60 @@
       },
       "air_filter_pm1_usage_hours": {
         "name": "PM1-filtergebruik in uren"
+      },
+      "active_burners": {
+        "name": "Actieve branders"
+      },
+      "cooktop_monitoring": {
+        "name": "Kookplaatbewaking"
+      },
+      "booster_angle_location": {
+        "name": "Booster-hoekpositie"
+      },
+      "cooking_mode": {
+        "name": "Bereidingsmodus",
+        "state": {
+          "no_operation": "Niet actief",
+          "micro_wave": "Magnetron",
+          "autocook": "Automatisch koken",
+          "keep_warm": "Warmhouden"
+        }
+      },
+      "cook_time": {
+        "name": "Bereidingstijd"
+      },
+      "cook_time_remaining": {
+        "name": "Resterende bereidingstijd"
+      },
+      "cook_finish_time": {
+        "name": "Eindtijd bereiding"
+      },
+      "sub_operation": {
+        "name": "Deelbewerking"
+      },
+      "hood_fan_speed": {
+        "name": "Ventilatorsnelheid",
+        "state": {
+          "off": "Uit",
+          "low": "Laag",
+          "medium": "Gemiddeld",
+          "high": "Hoog",
+          "boost": "Boost"
+        }
+      },
+      "hood_lamp": {
+        "name": "Lamp",
+        "state": {
+          "off": "Uit",
+          "medium": "Gemiddeld",
+          "on": "Aan"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "Schema nachtverlichting"
+      },
       "ai_energy_level": {
         "name": "AI Energy Mode"
       },
@@ -1350,6 +1545,18 @@
       "intensive": {
         "name": "Intensief"
       },
+      "add_wash_alarm": {
+        "name": "AddWash-melding"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "AddWash bij spoelen"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "AddWash laatste spoeling"
+      },
+      "add_wash_alarm_spin": {
+        "name": "AddWash centrifugeren"
+      },
       "lamp": {
         "name": "Lamp"
       },
@@ -1427,6 +1634,21 @@
       },
       "windsleep": {
         "name": "Slaapmodus"
+      },
+      "auto_detergent": {
+        "name": "Automatisch wasmiddel"
+      },
+      "auto_softener": {
+        "name": "Automatische wasverzachter"
+      },
+      "booster_light": {
+        "name": "Boosterlicht"
+      },
+      "booster_light_manual_brightness": {
+        "name": "Handmatige boosterhelderheid"
+      },
+      "booster_oscillation": {
+        "name": "Booster-oscillatie"
       }
     },
     "time": {
@@ -1627,6 +1849,9 @@
   "exceptions": {
     "remote_control_disabled": {
       "message": "Afstandsbediening is uitgeschakeld op dit apparaat. Raadpleeg de handleiding van je apparaat om afstandsbediening in te schakelen voordat Home Assistant het kan bedienen."
+    },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation is wat de oven meldt als hij niets doet. Het kan niet als stand worden gekozen; annuleer het bakken op het bedieningspaneel van de oven."
     },
     "debug_payload_empty": {
       "message": "De payload voor de schrijfbewerking voor foutopsporing moet een niet-leeg object zijn."

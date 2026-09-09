@@ -109,8 +109,32 @@
       "softener_low": {
         "name": "Málo aviváže"
       },
+      "add_wash_available": {
+        "name": "AddWash povoleno"
+      },
+      "add_wash_indicator": {
+        "name": "AddWash připraveno"
+      },
       "stick_ble_connected": {
         "name": "Tyč připojena přes BLE"
+      },
+      "cooktop_burner": {
+        "name": "Hořák {number}"
+      },
+      "beep": {
+        "name": "Pípání"
+      },
+      "remind_beep": {
+        "name": "Připomínací signál konce"
+      },
+      "display_time_auto_sync": {
+        "name": "Automatická synchronizace času"
+      },
+      "grease_filter_alarm": {
+        "name": "Alarm tukového filtru"
+      },
+      "front_vent_open": {
+        "name": "Přední ventilace"
       }
     },
     "button": {
@@ -123,6 +147,24 @@
       "auto_clean_stop": {
         "name": "Zastavit samočištění"
       },
+      "air_filter_reset": {
+        "name": "Resetovat vzduchový filtr"
+      },
+      "air_filter_pm1_reset": {
+        "name": "Resetovat filtr PM1.0"
+      },
+      "hepa_filter_reset": {
+        "name": "Resetovat filtr HEPA"
+      },
+      "deodor_filter_reset": {
+        "name": "Resetovat pachový filtr"
+      },
+      "hood_filter_reset": {
+        "name": "Resetovat filtr digestoře"
+      },
+      "filter_reset": {
+        "name": "Resetovat vodní filtr"
+      },
       "filter_time_reset": {
         "name": "Vynulovat počítadlo filtru"
       },
@@ -134,6 +176,9 @@
       },
       "start": {
         "name": "Spustit"
+      },
+      "sync_clock": {
+        "name": "Synchronizovat hodiny"
       },
       "stop": {
         "name": "Zastavit"
@@ -222,6 +267,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "Citlivost uvítacího osvětlení",
+        "state": {
+          "nearest": "Nejblíže",
+          "near": "Blízko",
+          "middle": "Středně",
+          "far": "Daleko"
+        }
+      },
       "ai_energy_level": {
         "name": "Úroveň režimu AI Energy"
       },
@@ -344,7 +398,20 @@
           "a4": "Časové sušení",
           "a6": "Rychlé sušení",
           "a3": "Sportovní oblečení",
-          "a2": "Jemné prádlo"
+          "a2": "Jemné prádlo",
+          "9a": "Bavlna",
+          "ca": "Provětrání",
+          "db": "Super Speed",
+          "99": "Smíšená náplň",
+          "93": "Žehlení",
+          "b5": "Vlna",
+          "d7": "Outdoor péče",
+          "96": "Studený vzduch",
+          "97": "Teplý vzduch",
+          "7f": "Časové sušení",
+          "98": "Rychlé sušení 35",
+          "eb": "Jemné prádlo",
+          "b6": "Syntetika"
         }
       },
       "dryer_cycle_table_03": {
@@ -395,6 +462,17 @@
           "3b": "Ložní prádlo/Odstranění prachu",
           "3c": "Sportovní oblečení",
           "3d": "Džíny"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "Úroveň sušení",
+        "state": {
+          "none": "Vypnuto",
+          "damp": "Vlhké",
+          "less": "Méně",
+          "normal": "Normální",
+          "more": "Více",
+          "very": "Velmi"
         }
       },
       "favorite_capacity": {
@@ -497,7 +575,13 @@
           "frozen_pizza_plus": "Mražená pizza+",
           "slow_cook": "Pomalé vaření",
           "plate_warm": "Ohřev talířů",
-          "air_fry": "Fritéza na vzduch"
+          "air_fry": "Fritéza na vzduch",
+          "convection_roast": "Pečení horkým vzduchem",
+          "keep_warm": "Udržování teploty",
+          "bread_proof": "Kynutí těsta",
+          "dehydrate": "Sušení",
+          "self_clean": "Samočištění",
+          "air_fryer": "Horkovzdušná fritéza"
         }
       },
       "operating_mode": {
@@ -649,15 +733,29 @@
         "name": "Cyklus",
         "state": {
           "01": "Normální",
-          "70": "Intenzivní",
           "55": "Bílé prádlo",
+          "57": "Samočištění+",
+          "5b": "Bavlna",
+          "5c": "Extra rychlý",
+          "5d": "Super Eco",
+          "5e": "Jemné prádlo",
+          "5f": "Dětské potřeby",
+          "60": "Outdoor",
+          "61": "Tmavé prádlo",
+          "63": "Čištění bubnu",
+          "64": "Máchání + odstřeďování",
+          "65": "Vlna",
+          "66": "Ložní prádlo",
+          "67": "Syntetika",
+          "68": "Eko bavlna",
+          "6b": "Pouze odstřeďování",
+          "70": "Intenzivní",
           "71": "Ložní prádlo",
           "72": "Dezinfekce",
-          "77": "Nežehlivé prádlo",
-          "57": "Samočištění+",
           "73": "Máchání + odstřeďování",
           "74": "Sportovní oblečení",
           "75": "Jemné prádlo",
+          "77": "Nežehlivé prádlo",
           "78": "Rychlé praní"
         }
       },
@@ -828,9 +926,57 @@
           "ventilation": "Větrání",
           "smartventilation": "Chytré větrání"
         }
+      },
+      "dry_time": {
+        "name": "Doba sušení"
+      },
+      "booster_fan_mode": {
+        "name": "Režim ventilátoru boosteru",
+        "state": {
+          "off": "Vypnuto",
+          "auto": "Automaticky",
+          "high": "Vysoká",
+          "medium": "Střední"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "Teplota barvy světla boosteru",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "Jas světla boosteru",
+        "state": {
+          "smart": "Chytrý",
+          "high": "Vysoký",
+          "low": "Nízký"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "Úhel oscilace boosteru",
+        "state": {
+          "normal": "Normální",
+          "circulation": "Cirkulace",
+          "right_narrow": "Vpravo úzce",
+          "right_wide": "Vpravo široce",
+          "left_narrow": "Vlevo úzce",
+          "left_wide": "Vlevo široce"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "Úroveň snímání uvítacího osvětlení",
+        "state": {
+          "nearest": "Nejblíže",
+          "near": "Blízko",
+          "middle": "Středně",
+          "far": "Daleko"
+        }
+      },
       "auto_clean_progress": {
         "name": "Průběh automatického čištění"
       },
@@ -989,12 +1135,6 @@
       "drum_clean_last_cleaned": {
         "name": "Poslední čištění bubnu"
       },
-      "dry_level": {
-        "name": "Úroveň sušení"
-      },
-      "dry_time": {
-        "name": "Doba sušení"
-      },
       "dryer_type": {
         "name": "Typ sušičky",
         "state": {
@@ -1006,6 +1146,9 @@
       },
       "energy_kwh": {
         "name": "Energie"
+      },
+      "usage_runtime_hours": {
+        "name": "Doba provozu"
       },
       "energy_last_month_kwh": {
         "name": "Energie (minulý měsíc)"
@@ -1142,7 +1285,8 @@
           "dryingwithdooropen": "Větrání",
           "cooling": "Chlazení",
           "predrain": "Vypouštění",
-          "prewash": "Předpírka"
+          "prewash": "Předpírka",
+          "sanitizing": "Dezinfekce"
         }
       },
       "progress_percentage": {
@@ -1224,9 +1368,60 @@
       },
       "air_filter_pm1_usage_hours": {
         "name": "Hodiny využití PM1 filtru"
+      },
+      "active_burners": {
+        "name": "Aktivní hořáky"
+      },
+      "cooktop_monitoring": {
+        "name": "Sledování varné desky"
+      },
+      "booster_angle_location": {
+        "name": "Poloha úhlu boosteru"
+      },
+      "cooking_mode": {
+        "name": "Režim vaření",
+        "state": {
+          "no_operation": "Bez provozu",
+          "micro_wave": "Mikrovlny",
+          "autocook": "Automatické vaření",
+          "keep_warm": "Udržování teploty"
+        }
+      },
+      "cook_time": {
+        "name": "Doba vaření"
+      },
+      "cook_time_remaining": {
+        "name": "Zbývající doba vaření"
+      },
+      "cook_finish_time": {
+        "name": "Čas dokončení vaření"
+      },
+      "sub_operation": {
+        "name": "Dílčí operace"
+      },
+      "hood_fan_speed": {
+        "name": "Otáčky ventilátoru",
+        "state": {
+          "off": "Vypnuto",
+          "low": "Nízké",
+          "medium": "Střední",
+          "high": "Vysoké",
+          "boost": "Turbo"
+        }
+      },
+      "hood_lamp": {
+        "name": "Lampa",
+        "state": {
+          "off": "Vypnuto",
+          "medium": "Střední",
+          "on": "Zapnuto"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "Plán nočního osvětlení"
+      },
       "ai_energy_level": {
         "name": "Režim AI Energy"
       },
@@ -1350,6 +1545,18 @@
       "intensive": {
         "name": "Intenzivní"
       },
+      "add_wash_alarm": {
+        "name": "Alarm AddWash"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "AddWash při máchání"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "AddWash při posledním máchání"
+      },
+      "add_wash_alarm_spin": {
+        "name": "AddWash při odstřeďování"
+      },
       "lamp": {
         "name": "Lampa"
       },
@@ -1427,6 +1634,21 @@
       },
       "windsleep": {
         "name": "Noční režim"
+      },
+      "auto_detergent": {
+        "name": "Automatické dávkování pracího prostředku"
+      },
+      "auto_softener": {
+        "name": "Automatické dávkování aviváže"
+      },
+      "booster_light": {
+        "name": "Světlo boosteru"
+      },
+      "booster_light_manual_brightness": {
+        "name": "Ruční jas boosteru"
+      },
+      "booster_oscillation": {
+        "name": "Oscilace boosteru"
       }
     },
     "time": {
@@ -1627,6 +1849,9 @@
   "exceptions": {
     "remote_control_disabled": {
       "message": "Dálkové ovládání je na tomto zařízení vypnuté. V návodu ke spotřebiči zjistěte, jak zapnout dálkové ovládání, než jej bude moci Home Assistant ovládat."
+    },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation je stav, který trouba hlásí v nečinnosti. Nelze jej zvolit jako režim; zrušte pečení na ovládacím panelu trouby."
     },
     "debug_payload_empty": {
       "message": "Obsah ladicího zápisu musí být neprázdný objekt."

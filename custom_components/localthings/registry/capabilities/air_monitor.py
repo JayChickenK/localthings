@@ -7,8 +7,9 @@ only); this registry deliberately doesn't include common.POWER.
 air_purifier.AIR_QUALITY and range_hood.AIR_QUALITY already read via
 common.sensor_item_value -- reused here rather than re-decoded, including
 the same dust/fine_dust/super_fine_dust/odor/clean_level keys so this
-device shares those capabilities' catalog entries. This board additionally
-reports a CO2 reading the other two families don't.
+device shares those capabilities' catalog entries. This board reports a
+CO2 reading; air_purifier.AIR_QUALITY now models the same type when a
+purifier lists it (issue #387).
 
 A second `value` list element on the particulate-matter types (Dust's
 `['31', '2']`) is the device's own graded air-quality level for that
@@ -36,7 +37,7 @@ from datetime import time as dt_time
 from ..capability import Capability
 from ..entities import BinarySensorDesc, SensorDesc, SwitchDesc, TimeDesc
 from .air_purifier import _AIR_QUALITY_SENSORS
-from .common import int_or_none, sensor_item_value
+from .common import has_sensor_type, int_or_none, sensor_item_value
 
 # device_class/unit are taken from the shared rows; state_class deliberately
 # is not. air_purifier leaves Odor/CleanLevel unstamped because they read as
@@ -59,6 +60,7 @@ SENSORS = Capability(
                 state_class="measurement",
                 device_class=device_class,
                 unit=unit,
+                exists_fn=has_sensor_type(sensor_type),  # issue #414
                 value_fn=lambda items, t=sensor_type: sensor_item_value(items, t),
             )
             for key, icon, sensor_type, _state_class, device_class, unit in _AIR_QUALITY_SENSORS
@@ -69,6 +71,7 @@ SENSORS = Capability(
             device_class="carbon_dioxide",
             state_class="measurement",
             unit="ppm",
+            exists_fn=has_sensor_type("CO2"),  # issue #414
             value_fn=lambda items: sensor_item_value(items, "CO2"),
         ),
     ),

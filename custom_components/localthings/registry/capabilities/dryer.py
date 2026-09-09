@@ -10,9 +10,15 @@ the /course/vs/0 cycle select -- lives in laundry.py.
 """
 
 from ..capability import Capability
-from ..entities import SensorDesc, SwitchDesc
+from ..entities import SelectDesc, SensorDesc, SwitchDesc
 from .common import diagnosis_status
-from .laundry import cycle_select, drum_clean_cycles_remaining, drum_clean_last_cleaned
+from .laundry import (
+    OPTION_KIND_DRY,
+    course_narrowed_options,
+    cycle_select,
+    drum_clean_cycles_remaining,
+    drum_clean_last_cleaned,
+)
 
 
 def _wrinkle_write(p, rep, href=None):
@@ -21,12 +27,62 @@ def _wrinkle_write(p, rep, href=None):
     return ["washer", "vs", "0"], {"x.com.samsung.da.wrinklePrevent": p}
 
 
+def _setting_write(field):
+    return lambda p, rep, href=None: (["washer", "vs", "0"], {field: p})
+
+
+# dryLevel/dryTime were read-only sensors until issue #438; both carry the
+# device's own supported-values list, so the options come from the board
+# rather than a hardcoded tuple, and washer.WASHER_SETTINGS already writes
+# dryLevel this way on combo units. Moving these from sensor to select
+# changes their entity IDs (sensor.*_dry_level -> select.*_dry_level); the
+# orphaned sensor rows are swept in __init__ on setup.
+#
+# The dryLevel write is confirmed, not just inferred from that sibling
+# contract: exercised end to end on a DV5000T (DA_WM_TP2_20_COMMON) through
+# Home Assistant (PR #407). That board reports isModelSettingWithoutSC true,
+# so the write lands with Smart Control off -- see
+# common.remote_control_required_for_write. dryTime's write is still the
+# inferred one; issue #438 asks the reporter to exercise it.
 DRYER_SETTINGS = Capability(
     href="/washer/vs/0",
     poll_tier="warm",
     entities=(
-        SensorDesc(key="dry_level", field="x.com.samsung.da.dryLevel", icon="mdi:water-percent"),
-        SensorDesc(key="dry_time", field="x.com.samsung.da.dryTime", icon="mdi:timer"),
+        # translation_key is dryer_dry_level, NOT washer.py's
+        # washer_dry_level: that catalog is this same field's *other*
+        # meaning on a combo, a duration in minutes ("30" -> "30 min"), and
+        # reusing it would label a dryness dial in minutes. The
+        # Damp/Less/Normal/More/Very vocabulary the TP1_21 boards report is
+        # catalogued; the numeric None/1/2/3 that DV5000T (TP2_20) and
+        # DV6800N (A51_20) report deliberately is not, so select._display
+        # renders those digits raw rather than guessing a meaning for them.
+        #
+        # Options are narrowed to the selected course (issue #408's decode,
+        # landed in #425). 0xD is the right nibble here: all five dumps
+        # routing to this registry carry a 0xD group, and the WW6600R combo
+        # -- whose dry dial is 0xB -- routes to the washer registry instead.
+        SelectDesc(
+            key="dry_level",
+            field="x.com.samsung.da.dryLevel",
+            icon="mdi:water-percent",
+            entity_category="config",
+            translation_key="dryer_dry_level",
+            options=course_narrowed_options(
+                OPTION_KIND_DRY,
+                "x.com.samsung.da.dryLevel",
+                "x.com.samsung.da.supportedDryLevel",
+            ),
+            write_fn=_setting_write("x.com.samsung.da.dryLevel"),
+        ),
+        SelectDesc(
+            key="dry_time",
+            field="x.com.samsung.da.dryTime",
+            icon="mdi:timer",
+            entity_category="config",
+            options_field="x.com.samsung.da.supportedDryTime",
+            exists_fn=lambda rep, resources: bool(rep.get("x.com.samsung.da.supportedDryTime")),
+            write_fn=_setting_write("x.com.samsung.da.dryTime"),
+        ),
         SensorDesc(
             key="dryer_type",
             field="x.com.samsung.da.dryerType",
@@ -63,6 +119,12 @@ DRYER_SETTINGS = Capability(
 # code. It shares no codes with Table_03 above -- 'a5' Bedding here and
 # '01' Normal are both table-scoped, so a Table_03 dryer never picks up a
 # Table_00 label or vice versa (see laundry.cycle_select's table_href).
+# A DV6800N -- same DA_WM_A51_20_COMMON board, also Table_00 -- confirmed
+# 14 more courses the same way (issue #394); its /course/vs/0 supportedOptions
+# only advertises a different subset of this same table (each model exposes
+# whichever courses its hardware supports), not a conflicting code family --
+# the one code both reporters confirmed, 'a5', means Bedding on both. Folded
+# into the same catalog entry below rather than a new one.
 #
 # Drum Clean+ maintenance tracking (issue #258) reuses washer.py's
 # DrumCleanProposal_/WashingTimes_/DrumCleanLog_ tokens on this same

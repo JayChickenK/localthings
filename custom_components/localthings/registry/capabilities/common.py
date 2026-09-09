@@ -13,6 +13,7 @@ against live device dumps:
 
 from datetime import UTC, datetime
 
+from .. import usagedb
 from ..batch import is_stub_rep
 from ..capability import Capability
 from ..entities import (
@@ -299,6 +300,30 @@ def sensor_item_value(items, sensor_type, index=0):
     return None
 
 
+def has_sensor_type(type_):
+    """True when /sensors/vs/0's items[] lists an item of this type.
+
+    This only proves the type is *listed*, not that the reading is real:
+    issue #166 (ARTIK051_PRAC_20K) lists all five types with permanent-zero
+    values on units the reporter confirmed don't have the hardware. So
+    entities gated on this stay disabled by default rather than
+    existence-gated further, to avoid silently dropping real readings on
+    hardware not yet seen.
+
+    is_stub_rep(rep) keeps the stub carve-out (see entity._is_included /
+    ENERGY_METER, issue #127): an explicit exists_fn otherwise bypasses it
+    and would drop the entity when /device/0 returns a not-yet-fetched stub.
+    """
+
+    def fn(rep, resources):
+        return is_stub_rep(rep) or any(
+            isinstance(i, dict) and i.get("x.com.samsung.da.type") == type_
+            for i in (rep.get("x.com.samsung.da.items") or [])
+        )
+
+    return fn
+
+
 # OCF-native / vendor '-vs' fallback pairs for power, kids-lock, remote
 # control: each exists as both a standard OCF resource (/power/0,
 # oic.r.switch.binary, plain boolean 'value') and a Samsung vendor
@@ -471,8 +496,10 @@ ALARMS = Capability(
 # reporting a real value (e.g. a fridge's 93 W) still shows it (issue #6).
 _DEAD_INSTANTANEOUS_POWER = "-500"
 
+HREF_ENERGY_CONSUMPTION = "/energy/consumption/vs/0"
+
 ENERGY_METER = Capability(
-    href="/energy/consumption/vs/0",
+    href=HREF_ENERGY_CONSUMPTION,
     entities=(
         # is_stub_rep(rep) keeps the stub carve-out (see
         # entity._is_included): an explicit exists_fn otherwise bypasses
@@ -572,6 +599,55 @@ WATER_METER = Capability(
     ),
 )
 
+_RESETTABLE = {"replaceable", "washable"}
+
+
+def _filter_reset_supported(rep, _resources):
+    """Whether this filter resource claims a reset that exists.
+
+    filterResetType names the reset kinds the device supports, and the corpus
+    also carries ['notresetable'] -- a bare presence check reads that as a
+    yes. is_stub_rep keeps the stub carve-out an explicit exists_fn would
+    otherwise bypass (same reasoning as ENERGY_METER above).
+    """
+    return is_stub_rep(rep) or bool(
+        _RESETTABLE & set(rep.get("x.com.samsung.da.filterResetType") or ())
+    )
+
+
+def filter_reset_button(key: str, href: str) -> ButtonDesc:
+    """Reset button for an `x.com.samsung.da.filter.*` resource.
+
+    `filterReset` set to the string "On" (case-sensitive; 'on'/'ON' fault
+    5.00) resets the usage counter. Confirmed on two unrelated families --
+    a TP1X_REF_21K's water filter and a TP1X_DA_AC_RAC_01001's air filter
+    (#449) -- which is what makes it a property of the resource type rather
+    than of one board. The field is a trigger no board reports back, so it
+    can't be gated on itself.
+
+    See docs/investigations/filter-reset.md, including why the hepa, deodor
+    and hood resources here are extrapolation rather than measurement.
+    """
+    segs = [s for s in href.strip("/").split("/") if s]
+
+    def write(payload, _rep, _href=None):
+        # Three parameters exactly, with segs closed over rather than bound as
+        # a fourth: the coordinator tries write_fn(payload, rep, href,
+        # resources) first, so a fourth parameter catches the resources
+        # snapshot instead (#461 -- the button posted to every href at once).
+        return list(segs), {"x.com.samsung.da.filterReset": payload}
+
+    return ButtonDesc(
+        key=key,
+        field="",
+        payload="On",
+        icon="mdi:restart",
+        entity_category="config",
+        exists_fn=_filter_reset_supported,
+        write_fn=write,
+    )
+
+
 WATER_FILTER = Capability(
     href="/filter/waterfilter/vs/0",
     match_fn=lambda rep, _: rep.get("x.com.samsung.da.filterStatus", "").lower() != "notused",
@@ -591,6 +667,7 @@ WATER_FILTER = Capability(
             options=("normal", "wash", "replace"),
             value_fn=lambda value: value.lower() if isinstance(value, str) else value,
         ),
+        filter_reset_button("filter_reset", "/filter/waterfilter/vs/0"),
     ),
 )
 
@@ -739,6 +816,98 @@ SELF_CHECK = Capability(
 # generation, so by_type/airconditioner.py excludes just that one member
 # and substitutes its own ENERGY_METER_GENERIC/ENERGY_METER_LEGACY.
 
+# The appliance's own usage history, and the list that names the files it
+# keeps. Both sit outside the /device/0 batch on every dump on record, so
+# poll_tier='probe' is what makes them readable at all -- see
+# registry.PROBE_HREFS and issue #301.
+#
+# No entities yet, deliberately. The record layout is settled
+# (<uint32 local timestamp><uint32 cumulative, tenths of a kWh><uint32 ...>)
+# and field 2 is confirmed against the live meter on four families, but the
+# third field means something different on each one -- zero on a washer, the
+# firmware's monthly bucket on a fridge, cumulative runtime on an
+# ARTIK051_PRAC_20K. What the file is worth per family is a census question,
+# and registering these coverage-only is what collects that census: the
+# probed reps reach diagnostics without surfacing as coverage gaps.
+FILE_LIST = Capability(href="/file/list/vs/0", poll_tier="probe")
+
+
+def _meter_reports_cumulative_power(resources) -> bool:
+    """True when /energy/consumption/vs/0 is the better source for energy.
+
+    A stub rep counts as yes: it means "not fetched yet", and
+    ENERGY_METER.energy_kwh includes itself on that basis, so treating it as
+    a no here would create both entities on the same key.
+    """
+    rep = resources.get(HREF_ENERGY_CONSUMPTION)
+    if rep is None:
+        return False
+    if is_stub_rep(rep):
+        return True
+    return "x.com.samsung.da.cumulativePower" in rep
+
+
+def _usage_energy_exists(rep, resources) -> bool:
+    """Bind the file's energy only where the meter resource cannot supply it
+    and the blob actually decodes -- an unreadable payload must produce no
+    entity rather than a permanently-unknown one."""
+    if _meter_reports_cumulative_power(resources):
+        return False
+    return usagedb.cumulative_energy_kwh(rep) is not None
+
+
+FILE_TRANSFER = Capability(
+    href="/file/transfer/vs/0",
+    poll_tier="probe",
+    entities=(
+        # Deliberately the same key as ENERGY_METER's, and mutually exclusive
+        # with it: the two exists_fn are exact complements, so an appliance
+        # gets one `energy_kwh` from whichever source can supply it and the
+        # entity_id does not depend on which. Same shape as the
+        # POWER_GENERIC/POWER_VS_FALLBACK pair above.
+        #
+        # A fallback rather than a second opinion. Where both exist the file
+        # is pure duplication -- measured on a dishwasher, whose single
+        # record matched cumulativePower and cumulativeDate exactly -- and
+        # two total_increasing energy sensors for one physical meter is the
+        # double-count trap issue #329 warns about. Where the meter reports
+        # nothing, though, this is the only copy of the number: issue #285's
+        # washer lost `cumulativePower` from its rep entirely and kept
+        # recording to the file.
+        #
+        # Steps once a day, because the file is a daily rollup rather than a
+        # live counter. Lumpy in the energy dashboard, correct in total, and
+        # better than the nothing these appliances report today.
+        SensorDesc(
+            key="energy_kwh",
+            device_class="energy",
+            state_class="total_increasing",
+            unit="kWh",
+            rep_fn=usagedb.cumulative_energy_kwh,
+            exists_fn=_usage_energy_exists,
+        ),
+        # Runtime, unlike energy, is not a fallback: no other resource on
+        # these boards reports it, so there is nothing to defer to. Issue
+        # #329 is what makes it worth having -- on a multi-head system this
+        # is the one number that is genuinely per-unit, differing per head
+        # while the energy counter beside it is the shared outdoor unit's.
+        #
+        # No state_class change needed for the daily-rollup lumpiness that
+        # applies to energy_kwh above: hours are not summed into a dashboard.
+        SensorDesc(
+            key="usage_runtime_hours",
+            device_class="duration",
+            state_class="total_increasing",
+            unit="h",
+            icon="mdi:timer-outline",
+            entity_category="diagnostic",
+            rep_fn=usagedb.cumulative_runtime_hours,
+            exists_fn=lambda rep, resources: usagedb.cumulative_runtime_hours(rep) is not None,
+        ),
+    ),
+)
+
+
 UNIVERSAL = (
     ALARMS,
     ENERGY_METER,
@@ -749,6 +918,8 @@ UNIVERSAL = (
     KIDS_LOCK_VS_FALLBACK,
     REMOTE_CONTROL_GENERIC,
     REMOTE_CONTROL_VS_FALLBACK,
+    FILE_LIST,
+    FILE_TRANSFER,
 )
 
 POWER = (

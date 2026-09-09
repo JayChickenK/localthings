@@ -1,7 +1,7 @@
 """Tests for dryer support and washer/dryer consistency (issue #14)."""
 
 from custom_components.localthings.registry.adapter import flatten
-from custom_components.localthings.registry.by_type import for_device_by_model
+from custom_components.localthings.registry.by_type import for_device_by_model, resolve
 from custom_components.localthings.registry.capabilities import dryer, ignored
 from custom_components.localthings.registry.discovery import discover
 from custom_components.localthings.registry.entities import SelectDesc
@@ -53,6 +53,25 @@ def test_expected_entities_present():
         assert key in state, key
 
 
+def test_dry_level_presence_is_field_gated_not_narrowed_by_an_exists_fn():
+    """dry_level must appear wherever the sensor it replaced did.
+
+    washer.py gates its combo dry_level on supportedDryLevel to tell a combo
+    from a plain washer; every dryer has a dry level, so the same gate here
+    would only ever suppress the entity -- including on a rep that is merely
+    a stub at discovery, which entity._is_included deliberately admits so a
+    sub-poll can populate it.
+
+    A missing entity would be permanent and silent: __init__'s
+    _drop_sensors_superseded_by_selects removes the old sensor row on every
+    setup, unconditionally, so there is nothing left to fall back to.
+    """
+    desc = next(e for e in dryer.DRYER_SETTINGS.entities if e.key == "dry_level")
+    assert isinstance(desc, SelectDesc)
+    assert desc.exists_fn is None
+    assert desc.field == "x.com.samsung.da.dryLevel"
+
+
 def test_job_beginning_status_reads_current_status():
     """The dump carries x.com.samsung.da.currentStatus (not the old
     jobBeginingStatus field the dryer descriptor used to read), so the sensor
@@ -90,8 +109,12 @@ def test_course_bound_to_shared_course_vs_0():
 
 
 def test_reported_table_00_course_codes_are_translated():
-    """The reporter confirmed these codes on a DVE45R6300W/A3 by selecting
-    each cycle and reading back the raw course code (issue #357)."""
+    """The DVE45R6300W/A3 reporter confirmed these codes by selecting each
+    cycle and reading back the raw course code (issue #357). A DV6800N --
+    same DA_WM_A51_20_COMMON board, also Table_00 -- later confirmed 14 more
+    (issue #394): a different subset of the same table, not a conflicting
+    code family (its one code in common with #357, 'a5', means Bedding on
+    both), so both sets share the one dryer_cycle_table_00 catalog entry."""
     from custom_components.localthings.catalog import translated_states
 
     desc = next(
@@ -99,7 +122,32 @@ def test_reported_table_00_course_codes_are_translated():
     )
     table_00 = {"/st/dryercourse/vs/0": {"x.com.samsung.da.st.courseTable": "Table_00"}}
     assert desc.translation_key(table_00) == "dryer_cycle_table_00"
-    confirmed = {"01", "9c", "a5", "9e", "9b", "27", "a0", "a4", "a6", "a3", "a2"}
+    confirmed = {
+        "01",
+        "9c",
+        "a5",
+        "9e",
+        "9b",
+        "27",
+        "a0",
+        "a4",
+        "a6",
+        "a3",
+        "a2",  # issue #357
+        "9a",
+        "ca",
+        "db",
+        "99",
+        "93",
+        "b5",
+        "d7",
+        "96",
+        "97",
+        "7f",
+        "98",
+        "eb",
+        "b6",  # issue #394
+    }
     assert confirmed <= translated_states("select", "dryer_cycle_table_00")
 
 
@@ -109,3 +157,31 @@ def test_st_dryercourse_is_ignored():
     ignored_hrefs = {c.href for c in ignored.IGNORED}
     assert "/st/dryercourse/vs/0" in ignored_hrefs
     assert "/st/washercourse/vs/0" in ignored_hrefs
+
+
+def _dv6800n():
+    resources = _load_device("dryer_dv6800n")
+    reg = resolve(resources, device_types=("oic.wk.d", "oic.d.dryer"))
+    return reg, resources
+
+
+def test_dv6800n_no_unbound_hrefs():
+    """Every resource in the issue #394 dump binds or is ignored."""
+    reg, resources = _dv6800n()
+    unbound = []
+    discover(resources, reg.capabilities, reg.pattern_capabilities, log=unbound.append)
+    assert unbound == []
+
+
+def test_dv6800n_course_codes_read_from_dump():
+    """A DV6800N (DA_WM_A51_20_COMMON, issue #394) reports 'Table_00' same
+    as #357's DVE45R6300W/A3, so it resolves to the same catalog entry --
+    its /course/vs/0 supportedOptions just advertises a different subset of
+    the same table (see test_reported_table_00_course_codes_are_translated)."""
+    _, resources = _dv6800n()
+    desc = next(
+        e for e in dryer.DRYER_COURSE.entities if e.key == "cycle" and isinstance(e, SelectDesc)
+    )
+    assert desc.translation_key(resources) == "dryer_cycle_table_00"
+    confirmed = ["9A", "CA", "DB", "99", "93", "B5", "D7", "A5", "96", "97", "7F", "98", "EB", "B6"]
+    assert desc.options(resources) == confirmed

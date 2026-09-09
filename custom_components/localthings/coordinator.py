@@ -40,6 +40,7 @@ from .const import (
     CONF_LEARNED_MODES,
     CONF_MANUFACTURER,
     CONF_MODEL,
+    CONF_OCF_DEVICE_ID,
     CONF_PORT,
     CONF_SERIAL,
     DEFAULT_CLOUD_COURSES_ENABLED,
@@ -49,6 +50,7 @@ from .const import (
     DTLS_LOCAL_PORT_BASE,
     SUMMARY_INTERVAL_S,
 )
+from .devices import set_via_device
 from .learned import LEARNABLE, LearnedModes, persist
 from .observe import GRACE_PERIOD_S, MODE_OBSERVE, MODE_POLL, ObserveManager
 from .registry import CAPABILITIES
@@ -63,15 +65,18 @@ from .registry.capabilities.common import (
 )
 from .registry.capabilities.laundry import cycle_options
 from .registry.discovery import BoundEntity
+from .registry.encode import from_json_safe, json_safe
 from .registry.entities import ClimateDesc
 from .registry.identity import (
     DeviceIdentity,
     device_display_name,
     ocf_device_key,
+    proven_ocf_device_id,
     read_identity,
     resolve_model,
     resolve_serial,
 )
+from .registry.registry import PROBE_HREFS
 from .registry.subdevices import (
     MAIN,
     Subdevice,
@@ -240,6 +245,21 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # triggers: the PUT itself, then the confirming summary poll.
     _POST_TIMEOUT_S: float = 8.0
     _POLL_TIMEOUT_S: float = 35.0
+    # Summary polls run every 30 s; probe hrefs get one read per this many
+    # cycles (~30 min). A usage file gains one record a day and costs a
+    # multi-KB blockwise transfer, so anything faster is pure waste
+    # (issue #301).
+    _PROBE_EVERY_N_CYCLES: int = 60
+    # Per href, and for the whole probe pass. A few-KB blockwise transfer
+    # needs more than a Property map's 10 s, but not the summary poll's 35 s
+    # -- and the total matters more than the per-href figure here: the
+    # first-discovery probe runs inside entry setup, and the periodic one
+    # holds _session_lock, which entity writes also need. On a composite
+    # appliance the href count is 2 x (1 + subdevices), so an unbounded pass
+    # would scale with the hardware. Same reasoning, and roughly the same
+    # budget, as registry.subdevices' enumeration budget.
+    _PROBE_TIMEOUT_S: float = 12.0
+    _PROBE_BUDGET_S: float = 20.0
 
     # First-discovery subdevice enumeration is part of config-entry setup, so
     # it must have a finite wall-clock cost. A UUID-prefixed AC whose
@@ -337,6 +357,14 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device_type_name: str | None = None
         self.one_ui_version: str = ""
         self._consecutive_poll_timeouts = 0
+        self._probe_cycles = 0
+        # Set by _poll_once when the failure was the DTLS handshake itself.
+        # A switched-off appliance fails there every cycle, and there is no
+        # session to tear down and re-establish -- see _async_update_data.
+        self._handshake_failed = False
+        # Consecutive cycles that ended with no data from the device, so an
+        # outage is reported once rather than once per poll (issue #269).
+        self._failed_cycles = 0
         self._unbound_hrefs: list[str] = []
         self._reconnect_times: list[float] = []
         # See _maybe_retry_observe_mode: last_mode_change_ts alone doesn't
@@ -772,14 +800,15 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if subdevice.kind == "indexed"
                 else "Secondary Subdevice"
             )
-        return DeviceInfo(
+        info = DeviceInfo(
             identifiers={(DOMAIN, f"{self.device_key}_{subdevice.key}")},
-            via_device=(DOMAIN, self.device_key),
             name=f"{base_name} {label}",
             manufacturer=self.device_info.get("manufacturer") or "Samsung",
             model=model or None,
             serial_number=serial,
         )
+        set_via_device(self.hass, self._entry.entry_id, info, (DOMAIN, self.device_key))
+        return info
 
     @property
     def observe_mode(self) -> str:
@@ -810,6 +839,11 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._identity = None
 
     def _close_session(self) -> None:
+        # Blocking, run in an executor. As of smartthings-local 0.1.12,
+        # close() actually puts the DTLS close_notify on the wire instead of
+        # just building it (issue #417), and paces the OBSERVE deregisters
+        # it now sends through the session rate limiter -- a few seconds for
+        # an appliance with a dozen relations at the 5 req/s default.
         sess = self._session
         self._session = None
         if sess is not None:
@@ -861,9 +895,18 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         call's own timeout and surfacing as an ambiguous `TimeoutError`.
         See `_defer_reconnect_for` for what that changes about how soon a
         confirmed-dead session gets reconnected.
+
+        Sets `_handshake_failed` so `_async_update_data` can tell a broken
+        session from one that never opened -- a switched-off appliance fails
+        in `_connect_session` every cycle, with nothing to reconnect.
         """
         if self._session is None:
-            self._connect_session()
+            try:
+                self._connect_session()
+            except Exception:
+                self._handshake_failed = True
+                raise
+        self._handshake_failed = False
         sess = self._session
         assert sess is not None
         try:
@@ -948,49 +991,112 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
         return result
 
-    def _poll_hrefs_blocking(self, hrefs: list[str]) -> dict[str, dict]:
-        """GET individual hrefs sequentially. Does not reconnect on failure. Blocking."""
+    def _poll_hrefs_blocking(
+        self,
+        hrefs: list[str],
+        timeout: float = 10.0,
+        apply: bool = True,
+        budget: float | None = None,
+    ) -> dict[str, dict]:
+        """GET individual hrefs sequentially. Does not reconnect on failure. Blocking.
+
+        `timeout` is per href. The probe tier raises it: a usage file is a
+        few KB and arrives blockwise, where a hot/warm resource is a small
+        Property map (issue #301).
+
+        `apply=False` returns the reps without writing them to the state
+        cache, for the one caller that must hand them to discovery *before*
+        a rejected subdevice candidate's resources could reach a cache with
+        no eviction -- see the first-discovery probe in _async_update_data.
+
+        `budget`, when set, caps the whole pass rather than each href, and
+        each remaining GET is clamped to what is left of it. Without one, a
+        long href list multiplies `timeout` by its length while holding the
+        session.
+        """
         if self._session is None:
             return {}
         results = {}
         first = True
+        deadline = time.monotonic() + budget if budget is not None else None
         for href in hrefs:
+            if deadline is not None:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self._log.debug("href poll budget spent; skipping %s", href)
+                    continue
+                timeout = min(timeout, remaining)
             if not first:
                 self._session.pace()
             first = False
             try:
                 path = href.strip("/").split("/")
-                code, payload = self._session.get(path, timeout=10.0)
+                code, payload = self._session.get(path, timeout=timeout)
                 if code == 0x45 and payload:
                     rep = cbor2.loads(payload)
                     if isinstance(rep, dict):
-                        self._observe.apply(href, rep, source="poll")
+                        if apply:
+                            self._observe.apply(href, rep, source="poll")
                         results[href] = rep
             except Exception as e:
                 self._log.debug("sub-poll %s: %s", href, e)
         return results
+
+    def _probe_blocking(self, subdevices: list[Subdevice], apply: bool = True) -> dict[str, dict]:
+        """GET the hrefs no /device/0 batch carries (registry.PROBE_HREFS),
+        once per subdevice in `subdevices`.
+
+        A 4.04 is the expected answer on boards without the resource, so a
+        failure per href is a debug log and an absent key, never a failed
+        poll -- same posture as a sibling subdevice going quiet.
+
+        Per subdevice rather than MAIN only, because on a multi-head system
+        the per-head file is the whole point: issue #329 read three heads of
+        one multi-split and got three distinct blobs, each carrying the
+        shared outdoor-unit energy counter alongside *that head's own*
+        runtime hours. Those heads were three config entries on three IPs,
+        so MAIN would have covered them -- but a composite board (issue #177)
+        puts the same several indoor units behind one IP as subdevices, and
+        `/oic/res` on the FAC_BORA fixtures advertises
+        `/<uuid>/file/transfer/vs/0` for exactly that. Probing MAIN alone
+        there would read the master's file and silently miss every sibling's,
+        losing the one number that is genuinely per-unit.
+        """
+        hrefs = [su.to_actual(href) for su in subdevices for href in PROBE_HREFS]
+        return self._poll_hrefs_blocking(
+            hrefs, timeout=self._PROBE_TIMEOUT_S, apply=apply, budget=self._PROBE_BUDGET_S
+        )
 
     # ------------------------------------------------------------------
     # Sub-poll loop (runs between summary polls)
     # ------------------------------------------------------------------
 
     async def _run_subpolls(self, force: bool = False) -> None:
-        """Poll hot/warm hrefs in the gaps between summary polls. No-op in
-        observe-primary mode (those hrefs are already covered by push)
-        unless `force` is set -- set when this cycle's sweep found the
-        cache disagreeing with a still-live observe session (see
-        log_sweep_discrepancies): a bounded fallback for a channel gone
-        silent without a reconnect."""
+        """Poll hot/warm hrefs in the gaps between summary polls.
+
+        In observe-primary mode this is a no-op for hrefs the device is
+        actually pushing, unless `force` is set (sweep disagreed with the
+        cache -- see log_sweep_discrepancies). Hrefs that were subscribed
+        but stayed silent through the grace period (issue #92) stay on
+        the hot/warm cadence via `fallback_hrefs`.
+        """
         if self._observe.mode == MODE_OBSERVE and not force:
-            return
-        hot = self._hot_hrefs
-        warm = self._warm_hrefs
+            silent = self._observe.fallback_hrefs
+            if not silent:
+                return
+            hot = [h for h in self._hot_hrefs if h in silent]
+            warm = [h for h in self._warm_hrefs if h in silent]
+        else:
+            hot = self._hot_hrefs
+            warm = self._warm_hrefs
         if not hot and not warm:
             return
         step = self._SUBPOLL_STEP_S
         for i in range(1, 10):  # slots 1..9  (T+3 s … T+27 s)
             await asyncio.sleep(step)
             hrefs = list(hot) + (list(warm) if i % 2 == 0 else [])
+            if not hrefs:
+                continue
             async with self._session_lock:
                 try:
                     await self.hass.async_add_executor_job(self._poll_hrefs_blocking, hrefs)
@@ -1183,6 +1289,7 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         model: str,
         manufacturer: str,
         device_type_name: str | None,
+        ocf_device_id: str | None = None,
     ) -> None:
         """Write this device's resolved identity back onto the config entry.
 
@@ -1199,10 +1306,19 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         None leaves whatever key is already stored untouched -- see the
         caller for why a snapshot replay must not write one.
 
+        `ocf_device_id` is the `di` this poll actually proved, recorded
+        beside the key rather than folded into it (const.CONF_OCF_DEVICE_ID).
+        None leaves the stored value alone, so one read that fails to report
+        a usable `di` doesn't erase what an earlier authenticated read
+        established. Nothing acts on a change here yet -- what a *different*
+        `di` means is the credential profiles' decision (issue #435); this
+        only has to have recorded the value by the time they land.
+
         Runs on the event loop, which async_update_entry requires.
         """
         identity = {
             **({CONF_DEVICE_KEY: device_key} if device_key is not None else {}),
+            **({CONF_OCF_DEVICE_ID: ocf_device_id} if ocf_device_id is not None else {}),
             CONF_SERIAL: serial,
             CONF_MODEL: model,
             CONF_MANUFACTURER: manufacturer,
@@ -1246,7 +1362,11 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             await self._snapshot_store.async_save(
                 {
-                    "resources": dict(resources),
+                    # json_safe/from_json_safe on the way out and back in
+                    # (registry/encode.py): a rep the JSON encoder rejects
+                    # used to fail this write entirely, and the only
+                    # symptom was this entry losing its offline load.
+                    "resources": json_safe(dict(resources)),
                     "subdevice_candidates": [asdict(su) for su in candidates],
                     "identity": asdict(ident) if ident is not None else None,
                 }
@@ -1278,7 +1398,7 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not stored or not stored.get("resources"):
             return False
 
-        resources = stored["resources"]
+        resources = from_json_safe(stored["resources"])
         try:
             ident = stored.get("identity")
             if ident is not None:
@@ -1465,7 +1585,26 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # writing a key here would freeze a pre-v4 entry's legacy key in as
         # if a poll had confirmed it, and the real UUID would later look
         # like an identity to defend against rather than one to adopt.
-        self._persist_identity(None if from_snapshot else key, serial, model, mfr, device_type_name)
+        #
+        # The proven `di` gets the same None for the same reason, and one
+        # more: only when this entry actually *is* the device that answered.
+        # `_resolve_identity` returns the registered key unchanged when an
+        # uncorroborated appliance answers at this address ("keeping the
+        # registered identity"), and it withholds that appliance's serial
+        # for exactly this reason -- recording its `di` instead would hand
+        # the intruder the very field issue #435's credential binding is
+        # meant to catch it with. When a poll does report a usable `di`
+        # that is the whole of `_resolve_identity`'s answer, so key equality
+        # is precisely "this entry adopted what just answered".
+        proven = None if from_snapshot else proven_ocf_device_id(ident)
+        self._persist_identity(
+            None if from_snapshot else key,
+            serial,
+            model,
+            mfr,
+            device_type_name,
+            proven if proven == key else None,
+        )
         if not from_snapshot:
             # A coverage gap is a claim about what the device reports, so only
             # a live poll gets to make it. Replaying a snapshot would restate
@@ -1665,6 +1804,42 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._reconnect_times.append(now)
         return len(self._reconnect_times) >= self._RECONNECT_WARN_THRESHOLD
 
+    def _mark_device_answered(self) -> None:
+        """Clear the bookkeeping a poll getting through invalidates."""
+        self._consecutive_poll_timeouts = 0
+        if self._failed_cycles:
+            self._log.info("device answered again after %d failed cycles", self._failed_cycles)
+            self._failed_cycles = 0
+
+    def _device_unreachable(self, what: str, e: Exception) -> dict[str, Any]:
+        """End a cycle that got no data, either degraded or as a failure.
+
+        Reported once per outage rather than once per cycle: an appliance
+        that is switched off fails identically every 30s for as long as it
+        stays off (issue #269), and this integration is built to sit through
+        exactly that (issue #295). Home Assistant logs the transition into
+        and out of a failed update on its own.
+
+        Raises `UpdateFailed` unless there are bound entities and cached
+        state to carry the last-known values on -- same precondition as
+        `_defer_reconnect_for` (issue #254).
+        """
+        self._failed_cycles += 1
+        if self._failed_cycles == 1:
+            self._log.error("%s: %s", what, e)
+        else:
+            self._log.debug("%s (%d cycles): %s", what, self._failed_cycles, e)
+        # Without this, a fully unreachable device left the connection-mode
+        # sensor stuck on "Push" forever -- only a successful poll ever
+        # downgraded it (issue #287). No just_downgraded_from_observe here:
+        # there's no live session this cycle to resubscribe on.
+        if self._observe.mode == MODE_OBSERVE:
+            self._observe.downgrade_to_poll()
+        if self._discovered and self._cache.snapshot():
+            self._log.debug("Full error:", exc_info=e)
+            return flatten(self.bound, self.entity_resources())
+        raise UpdateFailed(f"{what}: {e}") from e
+
     # ------------------------------------------------------------------
     # DataUpdateCoordinator hook
     # ------------------------------------------------------------------
@@ -1678,7 +1853,7 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         async with self._session_lock:
             try:
                 resources = await self.hass.async_add_executor_job(self._poll_once)
-                self._consecutive_poll_timeouts = 0
+                self._mark_device_answered()
             except Exception as e:
                 if self._defer_reconnect_for(e):
                     self._log.debug(
@@ -1689,6 +1864,15 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                     return flatten(self.bound, self.entity_resources())
                 self._consecutive_poll_timeouts = 0
+                if self._handshake_failed:
+                    # The handshake never completed, so there is no session
+                    # to close and no association for the device to clean
+                    # up: reconnecting would just repeat the same doomed
+                    # handshake five seconds later. That doubled what a
+                    # switched-off appliance costs -- two handshake timeouts
+                    # per cycle, and the same wait again on every setup
+                    # attempt while it stays dark (issue #269).
+                    return self._device_unreachable("device unreachable", e)
                 # A lone reconnect is routine (README's "Known device
                 # behavior"); only warn once they pile up. Pause first so
                 # the device can clean up its DTLS state before we knock
@@ -1702,23 +1886,9 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 try:
                     resources = await self.hass.async_add_executor_job(self._poll_once)
                 except Exception as e2:
-                    self._log.error("poll failed after reconnect: %s", e2)
-                    # Without this, a fully unreachable device left the
-                    # connection-mode sensor stuck on "Push" forever -- only
-                    # the success branch below ever downgraded it (issue
-                    # #287). No just_downgraded_from_observe here: there's no
-                    # live session this cycle to resubscribe on.
-                    if self._observe.mode == MODE_OBSERVE:
-                        self._observe.downgrade_to_poll()
-                    snapshot = self._cache.snapshot()
-                    # Same precondition as _defer_reconnect_for (issue #254):
-                    # degraded-but-successful data only makes sense once
-                    # there are bound entities to carry it.
-                    if self._discovered and snapshot:
-                        self._log.debug("Full error:", exc_info=e2)
-                        return flatten(self.bound, self.entity_resources())
-                    raise UpdateFailed(f"poll failed after reconnect: {e2}") from e2
+                    return self._device_unreachable("poll failed after reconnect", e2)
                 else:
+                    self._mark_device_answered()
                     # A fresh session has zero OBSERVE registrations; if we
                     # were in observe mode that state is now stale. Tear it
                     # down and resubscribe immediately below instead of
@@ -1770,9 +1940,43 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         "config entry is reloaded: %s",
                         e,
                     )
+                # Folded in before _run_discovery so a probe href is bound
+                # on the first cycle like any batch href -- and so it is
+                # registered as covered rather than surfacing as a coverage
+                # gap the moment it appears in `resources`.
+                try:
+                    # Candidates as well as MAIN, and before _run_discovery:
+                    # discovery is what binds an href to an entity and it runs
+                    # exactly once, so a sibling's file probed after it would
+                    # be cached forever and never surface as the per-head
+                    # runtime issue #329 is about. apply=False keeps a
+                    # rejected candidate's reps out of the eviction-free
+                    # cache; the apply loop below re-adds the live ones from
+                    # `resources` after _live_subdevice_resources filters it.
+                    resources.update(
+                        await self.hass.async_add_executor_job(
+                            self._probe_blocking, [MAIN, *self.subdevices], False
+                        )
+                    )
+                except Exception as e:
+                    self._log.debug("probe failed on first discovery: %s", e)
 
         source = "sweep" if self._discovered else "poll"
         first_cycle = not self._discovered
+        if not first_cycle and PROBE_HREFS:
+            # Counter rather than a timer: a probe is only meaningful on a
+            # cycle that already reached the device, and this rides one that
+            # just did.
+            self._probe_cycles += 1
+            if self._probe_cycles >= self._PROBE_EVERY_N_CYCLES:
+                self._probe_cycles = 0
+                async with self._session_lock:
+                    try:
+                        await self.hass.async_add_executor_job(
+                            self._probe_blocking, [MAIN, *self.subdevices]
+                        )
+                    except Exception as e:
+                        self._log.debug("probe cycle failed: %s", e)
         if first_cycle:
             # Discovery runs before the apply loop so a rejected candidate's
             # resources never reach the state cache (issue #177) --
@@ -1832,7 +2036,7 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Write a value to the device. Retries once on a dead session
         (issue #294); raises HomeAssistantError if that retry fails too.
 
-        A description-level validate_fn (SwitchDesc only, currently) rejects
+        A description-level validate_fn (SwitchDesc and SelectDesc) rejects
         a write with a user-facing message ahead of write_fn's silent
         no-op. The remote-control check runs first, unconditionally, unless
         the user opted out via CONF_BYPASS_REMOTE_CONTROL (issue #54: some
@@ -1903,9 +2107,12 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         write_href = bound_entity.subdevice.to_actual("/" + "/".join(path_segs))
         path_segs = [s for s in write_href.strip("/").split("/") if s]
 
-        # Apply optimistically before starting the settle guard -- guard and
-        # apply share the same gate (mark_write_pending), so reversing the
-        # order would drop the very update it exists to protect (issue #27).
+        # Apply readable writes optimistically before starting the settle
+        # guard -- guard and apply share the same gate (mark_write_pending),
+        # so reversing the order would drop the very update it exists to
+        # protect (issue #27). A write-only button has no readable field to
+        # protect: merging its command body would manufacture state the
+        # appliance can never confirm, so it skips both operations.
         #
         # settle_s must outlast the PUT plus the confirming refresh, not
         # DEFAULT_SETTLE_S's fixed few seconds: the refresh is a full
@@ -1925,27 +2132,29 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # option/item for the settle window. Pre-merge here the way the
         # device does, so the optimistic cache entry stays complete; the
         # wire `body` stays minimal.
-        optimistic_body = body
-        new_options = body.get("x.com.samsung.da.options")
-        if isinstance(new_options, list):
-            cached_options = (self._cache.get(write_href) or {}).get("x.com.samsung.da.options")
-            optimistic_body = {
-                **optimistic_body,
-                "x.com.samsung.da.options": merge_options_field(cached_options, new_options),
-            }
-        # Same fact, items[] shape (see airconditioner._climate_write's
-        # vendor temperature write).
-        new_items = body.get("x.com.samsung.da.items")
-        if isinstance(new_items, list):
-            cached_items = (self._cache.get(write_href) or {}).get("x.com.samsung.da.items")
-            optimistic_body = {
-                **optimistic_body,
-                "x.com.samsung.da.items": merge_items_field(cached_items, new_items),
-            }
-        self._observe.apply(write_href, optimistic_body, source="optimistic")
-        self._observe.mark_write_pending(
-            write_href, settle_s=self._POST_TIMEOUT_S + self._POLL_TIMEOUT_S
-        )
+        write_only = getattr(desc, "write_only", False)
+        if not write_only:
+            optimistic_body = body
+            new_options = body.get("x.com.samsung.da.options")
+            if isinstance(new_options, list):
+                cached_options = (self._cache.get(write_href) or {}).get("x.com.samsung.da.options")
+                optimistic_body = {
+                    **optimistic_body,
+                    "x.com.samsung.da.options": merge_options_field(cached_options, new_options),
+                }
+            # Same fact, items[] shape (see airconditioner._climate_write's
+            # vendor temperature write).
+            new_items = body.get("x.com.samsung.da.items")
+            if isinstance(new_items, list):
+                cached_items = (self._cache.get(write_href) or {}).get("x.com.samsung.da.items")
+                optimistic_body = {
+                    **optimistic_body,
+                    "x.com.samsung.da.items": merge_items_field(cached_items, new_items),
+                }
+            self._observe.apply(write_href, optimistic_body, source="optimistic")
+            self._observe.mark_write_pending(
+                write_href, settle_s=self._POST_TIMEOUT_S + self._POLL_TIMEOUT_S
+            )
 
         def _do_put():
             if self._session is None:
@@ -1990,9 +2199,10 @@ class LocalThingsCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 # revert-then-reapply symptom settle_s exists to prevent
                 # (issue #9). Re-arm it fresh now that the write actually
                 # landed.
-                self._observe.mark_write_pending(
-                    write_href, settle_s=self._POST_TIMEOUT_S + self._POLL_TIMEOUT_S
-                )
+                if not write_only:
+                    self._observe.mark_write_pending(
+                        write_href, settle_s=self._POST_TIMEOUT_S + self._POLL_TIMEOUT_S
+                    )
         await self.async_request_refresh()
 
     # ------------------------------------------------------------------

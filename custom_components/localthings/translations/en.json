@@ -109,8 +109,32 @@
       "softener_low": {
         "name": "Softener low"
       },
+      "add_wash_available": {
+        "name": "AddWash allowed"
+      },
+      "add_wash_indicator": {
+        "name": "AddWash ready"
+      },
       "stick_ble_connected": {
         "name": "Stick BLE connected"
+      },
+      "cooktop_burner": {
+        "name": "Burner {number}"
+      },
+      "beep": {
+        "name": "Beep"
+      },
+      "remind_beep": {
+        "name": "End signal reminder"
+      },
+      "display_time_auto_sync": {
+        "name": "Display time auto sync"
+      },
+      "grease_filter_alarm": {
+        "name": "Grease filter alarm"
+      },
+      "front_vent_open": {
+        "name": "Front vent"
       }
     },
     "button": {
@@ -123,6 +147,24 @@
       "auto_clean_stop": {
         "name": "Stop auto clean"
       },
+      "air_filter_reset": {
+        "name": "Reset air filter"
+      },
+      "air_filter_pm1_reset": {
+        "name": "Reset PM1.0 filter"
+      },
+      "hepa_filter_reset": {
+        "name": "Reset HEPA filter"
+      },
+      "deodor_filter_reset": {
+        "name": "Reset deodorizing filter"
+      },
+      "hood_filter_reset": {
+        "name": "Reset hood filter"
+      },
+      "filter_reset": {
+        "name": "Reset water filter"
+      },
       "filter_time_reset": {
         "name": "Reset filter time"
       },
@@ -134,6 +176,9 @@
       },
       "start": {
         "name": "Start"
+      },
+      "sync_clock": {
+        "name": "Sync clock"
       },
       "stop": {
         "name": "Stop"
@@ -222,6 +267,15 @@
       }
     },
     "select": {
+      "welcome_lighting_proximity": {
+        "name": "Welcome lighting proximity",
+        "state": {
+          "nearest": "Nearest",
+          "near": "Near",
+          "middle": "Middle",
+          "far": "Far"
+        }
+      },
       "ai_energy_level": {
         "name": "AI Energy Mode level"
       },
@@ -344,7 +398,20 @@
           "a4": "Time Dry",
           "a6": "Quick Dry",
           "a3": "Active Wear",
-          "a2": "Delicates"
+          "a2": "Delicates",
+          "9a": "Cotton",
+          "ca": "Air Wash",
+          "db": "Super Speed",
+          "99": "Mixed Load",
+          "93": "Iron Dry",
+          "b5": "Wool",
+          "d7": "Outdoor Care",
+          "96": "Cool Air",
+          "97": "Warm Air",
+          "7f": "Time Dry",
+          "98": "Quick Dry 35",
+          "eb": "Delicates",
+          "b6": "Synthetics"
         }
       },
       "dryer_cycle_table_03": {
@@ -395,6 +462,17 @@
           "3b": "Bedding/Dust Off",
           "3c": "Activewear",
           "3d": "Denim"
+        }
+      },
+      "dryer_dry_level": {
+        "name": "Dry level",
+        "state": {
+          "none": "Off",
+          "damp": "Damp",
+          "less": "Less",
+          "normal": "Normal",
+          "more": "More",
+          "very": "Very"
         }
       },
       "favorite_capacity": {
@@ -497,7 +575,13 @@
           "frozen_pizza_plus": "Frozen Pizza+",
           "slow_cook": "Slow cook",
           "plate_warm": "Plate warm",
-          "air_fry": "Air fry"
+          "air_fry": "Air fry",
+          "convection_roast": "Convection roast",
+          "keep_warm": "Keep warm",
+          "bread_proof": "Bread proof",
+          "dehydrate": "Dehydrate",
+          "self_clean": "Self clean",
+          "air_fryer": "Air fry"
         }
       },
       "operating_mode": {
@@ -649,15 +733,29 @@
         "name": "Cycle",
         "state": {
           "01": "Normal",
-          "70": "Heavy Duty",
           "55": "Whites",
+          "57": "Self Clean+",
+          "5b": "Cotton",
+          "5c": "Extra Speed",
+          "5d": "Super Eco Wash",
+          "5e": "Delicates",
+          "5f": "Baby Care",
+          "60": "Outdoor",
+          "61": "Dark Garment",
+          "63": "Drum Clean",
+          "64": "Rinse + Spin",
+          "65": "Wool",
+          "66": "Bedding",
+          "67": "Synthetics",
+          "68": "E Cotton",
+          "6b": "Spin Only",
+          "70": "Heavy Duty",
           "71": "Bedding",
           "72": "Sanitize",
-          "77": "Perm Press",
-          "57": "Self Clean+",
           "73": "Rinse + Spin",
           "74": "Active Wear",
           "75": "Delicates",
+          "77": "Perm Press",
           "78": "Quick Wash"
         }
       },
@@ -828,9 +926,57 @@
           "ventilation": "Ventilation",
           "smartventilation": "Smart Ventilation"
         }
+      },
+      "dry_time": {
+        "name": "Dry time"
+      },
+      "booster_fan_mode": {
+        "name": "Booster fan mode",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "high": "High",
+          "medium": "Medium"
+        }
+      },
+      "booster_light_color_temperature": {
+        "name": "Booster light color temperature",
+        "state": {
+          "3000k": "3000 K",
+          "4000k": "4000 K",
+          "6500k": "6500 K"
+        }
+      },
+      "booster_light_brightness": {
+        "name": "Booster light brightness",
+        "state": {
+          "smart": "Smart",
+          "high": "High",
+          "low": "Low"
+        }
+      },
+      "booster_oscillation_angle": {
+        "name": "Booster oscillation angle",
+        "state": {
+          "normal": "Normal",
+          "circulation": "Circulation",
+          "right_narrow": "Right narrow",
+          "right_wide": "Right wide",
+          "left_narrow": "Left narrow",
+          "left_wide": "Left wide"
+        }
       }
     },
     "sensor": {
+      "welcome_lighting_sense_level": {
+        "name": "Welcome lighting sense level",
+        "state": {
+          "nearest": "Nearest",
+          "near": "Near",
+          "middle": "Middle",
+          "far": "Far"
+        }
+      },
       "auto_clean_progress": {
         "name": "Auto clean progress"
       },
@@ -989,12 +1135,6 @@
       "drum_clean_last_cleaned": {
         "name": "Drum last cleaned"
       },
-      "dry_level": {
-        "name": "Dry level"
-      },
-      "dry_time": {
-        "name": "Dry time"
-      },
       "dryer_type": {
         "name": "Dryer type",
         "state": {
@@ -1006,6 +1146,9 @@
       },
       "energy_kwh": {
         "name": "Energy"
+      },
+      "usage_runtime_hours": {
+        "name": "Running time"
       },
       "energy_last_month_kwh": {
         "name": "Energy (last month)"
@@ -1142,7 +1285,8 @@
           "dryingwithdooropen": "Venting",
           "cooling": "Cooling",
           "predrain": "Pre-drain",
-          "prewash": "Pre-wash"
+          "prewash": "Pre-wash",
+          "sanitizing": "Sanitizing"
         }
       },
       "progress_percentage": {
@@ -1224,9 +1368,60 @@
       },
       "air_filter_pm1_usage_hours": {
         "name": "PM1 filter usage hours"
+      },
+      "active_burners": {
+        "name": "Active burners"
+      },
+      "cooktop_monitoring": {
+        "name": "Cooktop monitoring"
+      },
+      "booster_angle_location": {
+        "name": "Booster angle position"
+      },
+      "cooking_mode": {
+        "name": "Cooking mode",
+        "state": {
+          "no_operation": "No operation",
+          "micro_wave": "Microwave",
+          "autocook": "Auto cook",
+          "keep_warm": "Keep warm"
+        }
+      },
+      "cook_time": {
+        "name": "Cook time"
+      },
+      "cook_time_remaining": {
+        "name": "Cook time remaining"
+      },
+      "cook_finish_time": {
+        "name": "Cook finish time"
+      },
+      "sub_operation": {
+        "name": "Sub-operation"
+      },
+      "hood_fan_speed": {
+        "name": "Fan speed",
+        "state": {
+          "off": "Off",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High",
+          "boost": "Boost"
+        }
+      },
+      "hood_lamp": {
+        "name": "Lamp",
+        "state": {
+          "off": "Off",
+          "medium": "Medium",
+          "on": "On"
+        }
       }
     },
     "switch": {
+      "night_lighting_schedule": {
+        "name": "Night lighting schedule"
+      },
       "ai_energy_level": {
         "name": "AI Energy Mode"
       },
@@ -1350,6 +1545,18 @@
       "intensive": {
         "name": "Intensive"
       },
+      "add_wash_alarm": {
+        "name": "AddWash alarm"
+      },
+      "add_wash_alarm_rinse": {
+        "name": "AddWash rinse"
+      },
+      "add_wash_alarm_final_rinse": {
+        "name": "AddWash final rinse"
+      },
+      "add_wash_alarm_spin": {
+        "name": "AddWash spin"
+      },
       "lamp": {
         "name": "Lamp"
       },
@@ -1427,6 +1634,21 @@
       },
       "windsleep": {
         "name": "Sleep mode"
+      },
+      "auto_detergent": {
+        "name": "Auto detergent"
+      },
+      "auto_softener": {
+        "name": "Auto softener"
+      },
+      "booster_light": {
+        "name": "Booster light"
+      },
+      "booster_light_manual_brightness": {
+        "name": "Booster manual brightness"
+      },
+      "booster_oscillation": {
+        "name": "Booster oscillation"
       }
     },
     "time": {
@@ -1627,6 +1849,9 @@
   "exceptions": {
     "remote_control_disabled": {
       "message": "Remote control is turned off on this device. Check your appliance's manual for how to enable remote control before Home Assistant can control it."
+    },
+    "oven_mode_idle_not_selectable": {
+      "message": "NoOperation is what the oven reports while idle. It can't be selected as a mode; cancel the cook on the oven's panel instead."
     },
     "debug_payload_empty": {
       "message": "Debug write payload must be a non-empty object."

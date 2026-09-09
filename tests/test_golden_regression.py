@@ -108,12 +108,35 @@ def test_registry_reproduces_golden_state_keys_for_dryer_dve50a8600():
     ('..._DVE50A8800_8600/...'), so the true 'DV' consumer-model token sits
     one segment before the actual last segment ('8600'). The old
     last-segment-only check missed it and fell back to 'unknown'; resolved
-    via _consumer_model_key scanning segments from the end."""
+    via _consumer_model_key scanning segments from the end.
+
+    This board reports supportedDryLevel but no dryTime/supportedDryTime at
+    all, so it lost its permanently-empty dry_time key when that descriptor
+    became a select gated on the supported list (issue #438)."""
     from tests.conftest import _load_device
 
     resources = _load_device("dryer_dve50a8600")
     golden = json.loads((GOLDEN / "dryer_dve50a8600.json").read_text())
     state_keys = _new_state_keys("dryer_dve50a8600", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_dryer_dv6800n():
+    """DA_WM_A51_20_COMMON/DV6800N (issue #394) resolves via /oic/d's
+    'oic.d.dryer' device type, not board-token guessing -- its modelNum's
+    board tokens ('DA', 'WM', 'COMMON') are all deliberately excluded from
+    _BOARD_TOKEN_TO_KEY (see registry/by_type's module docstring)."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("dryer_dv6800n")
+    golden = json.loads((GOLDEN / "dryer_dv6800n.json").read_text())
+    state_keys = _new_state_keys(
+        "dryer_dv6800n", resources, device_types=("oic.wk.d", "oic.d.dryer")
+    )
     assert set(state_keys) == set(golden["state_keys"]), (
         f"state_keys mismatch:\n"
         f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
@@ -382,6 +405,25 @@ def test_registry_reproduces_golden_state_keys_for_washer_dryer_combo():
     resources = _load_device("washer_dryer_combo")
     golden = json.loads((GOLDEN / "washer_dryer_combo.json").read_text())
     state_keys = _new_state_keys("washer_dryer_combo", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_washer_ww6500():
+    """DA_WM_A51_20 front-loader, typed solely by the WW consumer prefix in
+    its /information/vs/0 description: A51 is not a board token, so with the
+    description blanked this device resolves to nothing and drops to the
+    unknown-device fallback. That is the fragile route this test pins.
+    Reports the AddWash tokens and an empty /wm/editcourse/vs/0, so its cycle
+    list comes from supportedOptions."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("washer_ww6500")
+    golden = json.loads((GOLDEN / "washer_ww6500.json").read_text())
+    state_keys = _new_state_keys("washer_ww6500", resources)
     assert set(state_keys) == set(golden["state_keys"]), (
         f"state_keys mismatch:\n"
         f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
@@ -895,6 +937,30 @@ def test_registry_reproduces_golden_state_keys_for_microwave_me7500d_lamp_high()
     resources = _load_device("microwave_me7500d_lamp_high")
     golden = json.loads((GOLDEN / "microwave_me7500d_lamp_high.json").read_text())
     state_keys = _new_state_keys("microwave_me7500d_lamp_high", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_microwave_me80h2160raa():
+    """DAWIT 3.0 generation TP1X_DA-KS-MICROWAVE-0102X combi (model
+    OT80H30-/AA0, issue #433) -- reports none of the older microwave hrefs
+    at all (no /oven/vs/0, /mode/vs/0, /temperatures/vs/0, /doors/vs/0,
+    /operational/state/vs/0, /hood/fanspeed/vs/0). Cavity state, cooking
+    mode, child lock, power level and cook time all live in one bare-field
+    /oven/status/vs/0 instead; the built-in vent hood is the analogous
+    /hood/status/vs/0. Also the first fixture with a real /oic/d
+    ('oic.d.microwave'), confirming the new _OIC_TYPE_TO_KEY row routes it
+    the same way the modelNum 'MICROWAVE' board token already did."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("microwave_me80h2160raa")
+    golden = json.loads((GOLDEN / "microwave_me80h2160raa.json").read_text())
+    state_keys = _new_state_keys(
+        "microwave_me80h2160raa", resources, device_types=("oic.wk.d", "oic.d.microwave")
+    )
     assert set(state_keys) == set(golden["state_keys"]), (
         f"state_keys mismatch:\n"
         f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
@@ -1534,6 +1600,105 @@ def test_registry_reproduces_golden_state_keys_for_dishwasher_dw5000c_cloud():
     resources = _load_device("dishwasher_dw5000c_cloud")
     golden = json.loads((GOLDEN / "dishwasher_dw5000c_cloud.json").read_text())
     state_keys = _new_state_keys("dishwasher_dw5000c_cloud", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_washer_wf80h():
+    """A KR-market WF80H (DA_WM_TP1_21_COMMON, Table_02) captured mid-cycle
+    on a delayed start (issues #437/#438 came from the same reporter, a
+    washer and a dryer of the same board and firmware but two separate
+    appliances -- numofsubdevice 1 on both, no siblings).
+
+    It is the first dump to report /washer/vs/0's autoDetergentEnabled /
+    autoSoftenerEnabled, and it reports them in opposite states, which is
+    what makes the auto_detergent/auto_softener switches bindable rather
+    than a guess."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("washer_wf80h")
+    golden = json.loads((GOLDEN / "washer_wf80h.json").read_text())
+    state_keys = _new_state_keys("washer_wf80h", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_dryer_dv80h():
+    """The DV80H27H half of the same reporter's pair (issue #438), idle.
+
+    Guards the dry_level/dry_time move from read-only sensors to selects
+    driven by the board's own supportedDryLevel/supportedDryTime."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("dryer_dv80h")
+    golden = json.loads((GOLDEN / "dryer_dv80h.json").read_text())
+    state_keys = _new_state_keys("dryer_dv80h", resources)
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_range_nx60t8311ss():
+    """Gas NX60T8311SS/AA (issue #444), the first TP2X range in the corpus,
+    captured with all five burners lit so /cooktopmonitoring/vs/0's bitmask
+    entities are exercised non-zero."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("range_nx60t8311ss")
+    golden = json.loads((GOLDEN / "range_nx60t8311ss.json").read_text())
+    state_keys = _new_state_keys(
+        "range_nx60t8311ss", resources, device_types=("oic.wk.d", "oic.d.range")
+    )
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_air_purifier_ax100db900edd():
+    """AX100DB900EDD (issue #441), a tower unit on the same
+    TP1X_DA-AC-AIR-01031_0000 board as air_purifier_tp1x_da_ac_air. Its
+    only difference from that dump is the three /booster/ hrefs -- the fan,
+    light and oscillating head on top -- so its keys are that fixture's plus
+    the eight air_purifier.BOOSTER_* entities. Binds with zero unbound
+    hrefs; the /oic/d type resolves it before the board token gets a look."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("air_purifier_ax100db900edd")
+    golden = json.loads((GOLDEN / "air_purifier_ax100db900edd.json").read_text())
+    state_keys = _new_state_keys(
+        "air_purifier_ax100db900edd", resources, device_types=("oic.wk.d", "oic.d.airpurifier")
+    )
+    assert set(state_keys) == set(golden["state_keys"]), (
+        f"state_keys mismatch:\n"
+        f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
+        f"  missing: {sorted(set(golden['state_keys']) - set(state_keys))}"
+    )
+
+
+def test_registry_reproduces_golden_state_keys_for_air_purifier_avt_ww_touchotn():
+    """AVT-WW-TP1-22-TOUCHOTN (issue #414), the first purifier in the corpus
+    whose /sensors/vs/0 lists only CleanLevel. Its golden is the other AVT/
+    VTWW purifiers' minus dust/fine_dust/super_fine_dust/odor, which is the
+    point: those four used to be created here and read unknown forever."""
+    from tests.conftest import _load_device
+
+    resources = _load_device("air_purifier_avt_ww_touchotn")
+    golden = json.loads((GOLDEN / "air_purifier_avt_ww_touchotn.json").read_text())
+    state_keys = _new_state_keys(
+        "air_purifier_avt_ww_touchotn",
+        resources,
+        device_types=("oic.wk.d", "oic.d.airpurifier"),
+    )
     assert set(state_keys) == set(golden["state_keys"]), (
         f"state_keys mismatch:\n"
         f"  extra:   {sorted(set(state_keys) - set(golden['state_keys']))}\n"
