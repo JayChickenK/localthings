@@ -239,7 +239,9 @@ def _parse_ca_credentials(cert_field: str, key_field: str = "") -> tuple[str, st
         raise InvalidCA("No private key found in CA PEM")
     ca_cert_pem = "\n".join(certs)
     ca_key_pem = keys[0]
-    if ca_key_pem.startswith("-----BEGIN ENCRYPTED"):
+    # Traditional OpenSSL keeps BEGIN RSA/EC PRIVATE KEY and marks encryption
+    # in Proc-Type, not the PKCS#8 BEGIN ENCRYPTED header.
+    if ca_key_pem.startswith("-----BEGIN ENCRYPTED") or "Proc-Type: 4,ENCRYPTED" in ca_key_pem:
         raise EncryptedCAKey("CA private key is passphrase-protected")
     if _ca_pair_mismatch(certs[0], ca_key_pem):
         raise InvalidCA("CA certificate and private key do not pair")
@@ -267,6 +269,12 @@ def _ca_pair_mismatch(cert_pem: str, key_pem: str) -> bool:
             serialization.Encoding.DER,
             serialization.PublicFormat.SubjectPublicKeyInfo,
         )
+    except TypeError as exc:
+        # cryptography: password=None on an encrypted key. Don't fall through
+        # to minting — that fetches a Samsung UUID before invalid_ca.
+        if "encrypted" in str(exc).lower():
+            raise EncryptedCAKey("CA private key is passphrase-protected") from exc
+        return False
     except Exception:
         return False
     return cert_spki != key_spki

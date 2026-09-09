@@ -214,14 +214,52 @@ def test_parse_ca_credentials_rejects_a_bundle_with_no_key() -> None:
 
 
 def test_parse_ca_credentials_names_a_passphrase_protected_key() -> None:
-    """`load_pem_private_key` cannot open one without the passphrase and HA
-    has nowhere to ask for it, so the pair check swallows the failure and the
-    user is left with the generic 'could not be loaded' at mint time."""
+    """PKCS#8 `BEGIN ENCRYPTED PRIVATE KEY` — HA has nowhere to ask for the
+    passphrase, so name it here instead of failing later at mint time."""
     from custom_components.localthings.config_flow import EncryptedCAKey, _parse_ca_credentials
 
     encrypted = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nTEST\n-----END ENCRYPTED PRIVATE KEY-----"
     with pytest.raises(EncryptedCAKey, match="passphrase-protected"):
         _parse_ca_credentials(MOCK_CA_CERT_PEM, encrypted)
+
+
+def test_parse_ca_credentials_names_a_traditional_openssl_encrypted_key() -> None:
+    """`BEGIN RSA PRIVATE KEY` with Proc-Type: 4,ENCRYPTED is also encrypted,
+    but is not a BEGIN ENCRYPTED header."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from custom_components.localthings.config_flow import EncryptedCAKey, _parse_ca_credentials
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    encrypted = key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.TraditionalOpenSSL,
+        serialization.BestAvailableEncryption(b"secret"),
+    ).decode()
+    assert encrypted.startswith("-----BEGIN RSA PRIVATE KEY-----")
+    assert "Proc-Type: 4,ENCRYPTED" in encrypted
+    with pytest.raises(EncryptedCAKey, match="passphrase-protected"):
+        _parse_ca_credentials(MOCK_CA_CERT_PEM, encrypted)
+
+
+def test_ca_pair_mismatch_names_an_encrypted_key() -> None:
+    """cryptography raises TypeError for password=None on an encrypted key;
+    that must become EncryptedCAKey, not a silent False from the pair check."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from custom_components.localthings.config_flow import EncryptedCAKey, _ca_pair_mismatch
+
+    cert_pem, _plain = _rsa_ca_pair()
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    encrypted = key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.BestAvailableEncryption(b"secret"),
+    ).decode()
+    with pytest.raises(EncryptedCAKey, match="passphrase-protected"):
+        _ca_pair_mismatch(cert_pem, encrypted)
 
 
 async def test_first_device_accepts_combined_bundle_only(hass: HomeAssistant, mock_probe) -> None:
